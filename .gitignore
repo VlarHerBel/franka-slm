@@ -1,0 +1,61 @@
+# --- ROS (ROS 1 y ROS 2) ---
+build/
+devel/
+install/
+log/
+.catkin_workspace
+__pycache__/
+*.pyc
+*.pyo
+
+# --- C++ y Archivos de Compilación ---
+*.o
+*.so
+*.a
+*.db      # <- ESTO EVITA EL ERROR DE BROWSE.VC.DB
+*.ipch    # Caché precompilada de C++
+*.pdb
+
+# --- Modelos IA (SLM/DRL) ---
+*.pth
+*.onnx
+*.weights
+*.safetensors
+*.bin
+/datasets/
+/models/checkpoint-*/
+
+# --- Entornos Virtuales y Variables ---
+venv/
+.venv/
+env/
+.env
+
+# --- IDEs y Editores (¡Crucial!) ---
+.vscode/  # <- EVITA QUE SE SUBA LA CONFIGURACIÓN LOCAL Y BASES DE DATOS DE VSCODE
+.idea/
+*.swp
+*.swo
+
+# --- Sistema Operativo ---
+.DS_Store
+Thumbs.db
+.vscode/browse.vc.db
+
+src/.vscode/browse.vc.db
+
+src/.vscode/browse.vc.db-shm
+
+src/.vscode/browse.vc.db-wal
+
+src/.vscode/c_cpp_properties.json
+
+src/.vscode/settings.json
+
+src/panda_ws/.vscode/browse.vc.db
+
+src/panda_ws/.vscode/c_cpp_properties.json
+
+src/panda_ws/.vscode/settings.json
+
+src/tfg_planner_slm/.vscode/browse.vc.db
