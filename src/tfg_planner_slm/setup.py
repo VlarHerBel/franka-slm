@@ -1,3 +1,5 @@
+from glob import glob
+
 from setuptools import find_packages, setup
 
 package_name = 'tfg_planner_slm'
@@ -10,7 +12,12 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/launch', glob('launch/*.py')),
     ],
+    include_package_data=True,
+    package_data={
+        package_name: ['web/*.html', 'web/*.js', 'web/*.css'],
+    },
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='vlar',
@@ -28,6 +35,7 @@ setup(
             'executor_node = tfg_planner_slm.executor_node:main',
             'vision_simulator = tfg_planner_slm.vision_simulator:main',
             'vision_bridge_node = tfg_planner_slm.vision_bridge_node:main',
+            'web_bridge_node = tfg_planner_slm.web_bridge_node:main',
 
         ],
     },

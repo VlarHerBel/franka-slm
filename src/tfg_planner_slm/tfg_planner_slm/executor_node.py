@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
+import json
+import math
+import queue
+
 import rclpy
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.node import Node
 from rclpy.parameter import Parameter
-from rclpy.callback_groups import ReentrantCallbackGroup
 from std_msgs.msg import String
 
 from pymoveit2 import MoveIt2, GripperInterface
 from pymoveit2.robots import panda
 
-import math
-import json
-import queue
-
 class TaskExecutor(Node):
     def __init__(self):
-        super().__init__('task_executor', parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, True)])
+        super().__init__(
+            "task_executor",
+            parameter_overrides=[
+                Parameter("use_sim_time", Parameter.Type.BOOL, True)
+            ],
+        )
 
-        # BANDEJA DE ENTRADA (Queue) para comunicar el callback con el hilo principal de forma segura
+        # Bandeja de entrada para comunicar callbacks con el bucle principal.
         self.task_queue = queue.Queue()
-        
         self.is_executing = False
         self.world_objects = {}
 
@@ -53,10 +57,24 @@ class TaskExecutor(Node):
         self.drop_joints  = [math.radians(-155.0), math.radians(30.0), math.radians(-20.0),
                              math.radians(-124.0), math.radians(44.0), math.radians(163.0), math.radians(7.0)]
 
-        self.sub_vision = self.create_subscription(String, '/detected_objects', self.vision_callback, 10, callback_group=self.callback_group)
-        self.sub_plan = self.create_subscription(String, '/robot_plan', self.plan_callback, 10, callback_group=self.callback_group)
+        self.sub_vision = self.create_subscription(
+            String,
+            "/detected_objects",
+            self.vision_callback,
+            10,
+            callback_group=self.callback_group,
+        )
+        self.sub_plan = self.create_subscription(
+            String,
+            "/robot_plan",
+            self.plan_callback,
+            10,
+            callback_group=self.callback_group,
+        )
+        self.status_publisher = self.create_publisher(String, "/executor_status", 10)
 
-        self.get_logger().info("🦾 Executor Sincronizado LISTO. Esperando plan del SLM...")
+        self.get_logger().info("Executor sincronizado listo. Esperando plan del SLM...")
+        self.publish_status("idle", "Esperando plan del SLM.")
 
     def go_to_start(self):
         self.get_logger().info("Moviendo a start_joints inicial...")
@@ -66,46 +84,67 @@ class TaskExecutor(Node):
     def vision_callback(self, msg):
         try:
             data = json.loads(msg.data)
-            self.world_objects.update(data)
-        except:
-            pass
+            if isinstance(data, dict):
+                self.world_objects.update(data)
+        except json.JSONDecodeError as exc:
+            self.get_logger().warn(f"Error actualizando objetos visibles: {exc}")
 
     def plan_callback(self, msg):
-        self.get_logger().info(f"📥 MENSAJE RECIBIDO DEL SLM: {msg.data}")
-        
-        # Si el robot está moviéndose o ya hay un plan esperando, lo ignoramos
+        self.get_logger().info(f"Mensaje recibido del SLM: {msg.data}")
+
         if self.is_executing:
-            self.get_logger().warn("⏳ Ya estoy ejecutando una tarea. La pondré en cola, pero ten paciencia...")
-            # No hacemos return, dejamos que se encole, pero avisamos.
+            self.get_logger().warn(
+                "Ya estoy ejecutando una tarea. La nueva orden se encolará."
+            )
 
         try:
             plan = json.loads(msg.data)
             if "error" in plan:
-                self.get_logger().error(f"❌ El SLM devolvió un error: {plan['error']}")
+                error_message = f"El SLM devolvió un error: {plan['error']}"
+                self.get_logger().error(error_message)
+                self.publish_status("error", error_message)
                 return
 
-            steps = plan.get('steps', [])
-            if not steps: return
+            steps = plan.get("steps", [])
+            if not steps:
+                self.publish_status("error", "El plan recibido no contiene pasos.")
+                return
 
-            target_name = steps[0].get('target')
-            
+            target_name = steps[0].get("target")
             if target_name in self.world_objects:
                 coords = self.world_objects[target_name]
-                
-                self.get_logger().info(f"¡Target '{target_name}' recibido! Añadiendo a la cola de trabajo...")
-                
-                # LA MAGIA: En lugar de bloquear el hilo, metemos las coordenadas en la bandeja
-                self.task_queue.put(coords)
-                
+
+                self.get_logger().info(
+                    f"Target '{target_name}' recibido. Añadiendo a la cola de trabajo."
+                )
+                self.task_queue.put({"target": target_name, "coords": coords})
+                self.publish_status(
+                    "queued",
+                    f"Tarea encolada para '{target_name}'.",
+                    target=target_name,
+                    queue_size=self.task_queue.qsize(),
+                )
             else:
-                self.get_logger().error(f"El SLM pidió coger '{target_name}', pero la cámara no lo ve.")
+                error_message = (
+                    f"El SLM pidió coger '{target_name}', pero la cámara no lo ve."
+                )
+                self.get_logger().error(error_message)
+                self.publish_status("error", error_message, target=target_name)
 
         except Exception as e:
-            self.get_logger().error(f"💥 Error procesando el plan: {e}")
+            error_message = f"Error procesando el plan: {e}"
+            self.get_logger().error(error_message)
+            self.publish_status("error", error_message)
 
-    def run_pick_and_place_sequence(self, coords):
+    def run_pick_and_place_sequence(self, coords, target_name=None):
         pick_position = [coords[0], coords[1], coords[2] - 0.60]
         quat_xyzw = [0.0, 1.0, 0.0, 0.0]
+
+        self.publish_status(
+            "executing",
+            f"Ejecutando pick and place para '{target_name or 'objeto'}'.",
+            target=target_name,
+        )
 
         self.get_logger().info("1. Moviendo a home_joints...")
         self.moveit2.move_to_configuration(self.home_joints)
@@ -154,6 +193,21 @@ class TaskExecutor(Node):
 
         self.get_logger().info("✅ ¡Secuencia de Pick-and-place completada con éxito!")
 
+    def publish_status(self, status, message, target=None, queue_size=None):
+        payload = {
+            "status": status,
+            "message": message,
+            "is_executing": self.is_executing,
+        }
+        if target is not None:
+            payload["target"] = target
+        if queue_size is not None:
+            payload["queue_size"] = queue_size
+
+        msg = String()
+        msg.data = json.dumps(payload)
+        self.status_publisher.publish(msg)
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -181,21 +235,44 @@ def main(args=None):
 
             try:
                 # Intenta coger una tarea de la cola (de forma no-bloqueante).
-                coords = node.task_queue.get_nowait()
-                
-                # Si llega aquí, es que hay trabajo. ¡A mover el brazo!
+                task = node.task_queue.get_nowait()
+                coords = task["coords"]
+                target_name = task.get("target")
+                task_succeeded = False
+
                 try:
                     node.is_executing = True
-                    # Esta función es bloqueante y usará el spinner interno de pymoveit2.
-                    node.run_pick_and_place_sequence(coords)
+                    node.publish_status(
+                        "executing",
+                        f"Iniciando ejecución para '{target_name}'.",
+                        target=target_name,
+                        queue_size=node.task_queue.qsize(),
+                    )
+                    node.run_pick_and_place_sequence(coords, target_name=target_name)
+                    task_succeeded = True
                 except Exception as e:
-                    node.get_logger().error(f"⚠️ Error durante la ejecución de la tarea: {e}")
+                    error_message = f"Error durante la ejecución de la tarea: {e}"
+                    node.get_logger().error(error_message)
+                    node.publish_status("error", error_message, target=target_name)
                 finally:
                     node.is_executing = False
-                    node.get_logger().info("🟢 Executor LIBRE y en posición HOME. Esperando siguiente orden...")
-                
+                    node.get_logger().info(
+                        "Executor libre y en posición HOME. Esperando siguiente orden..."
+                    )
+                    if task_succeeded:
+                        node.publish_status(
+                            "completed",
+                            f"Pick and place completado para '{target_name}'.",
+                            target=target_name,
+                            queue_size=node.task_queue.qsize(),
+                        )
+                    node.publish_status(
+                        "idle",
+                        "Executor libre y esperando siguiente orden.",
+                        queue_size=node.task_queue.qsize(),
+                    )
+
             except queue.Empty:
-                # La cola está vacía, es el estado normal mientras espera órdenes. No hacemos nada.
                 pass
                 
     except KeyboardInterrupt:
