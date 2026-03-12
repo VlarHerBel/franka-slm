@@ -11,7 +11,6 @@ from pymoveit2.robots import panda
 import math
 import json
 import queue
-from threading import Thread
 
 class TaskExecutor(Node):
     def __init__(self):
@@ -54,14 +53,15 @@ class TaskExecutor(Node):
         self.drop_joints  = [math.radians(-155.0), math.radians(30.0), math.radians(-20.0),
                              math.radians(-124.0), math.radians(44.0), math.radians(163.0), math.radians(7.0)]
 
-        self.get_logger().info("Moviendo a start_joints inicial...")
-        self.moveit2.move_to_configuration(self.start_joints)
-        self.moveit2.wait_until_executed()
-
         self.sub_vision = self.create_subscription(String, '/detected_objects', self.vision_callback, 10, callback_group=self.callback_group)
         self.sub_plan = self.create_subscription(String, '/robot_plan', self.plan_callback, 10, callback_group=self.callback_group)
 
         self.get_logger().info("🦾 Executor Sincronizado LISTO. Esperando plan del SLM...")
+
+    def go_to_start(self):
+        self.get_logger().info("Moviendo a start_joints inicial...")
+        self.moveit2.move_to_configuration(self.start_joints)
+        self.moveit2.wait_until_executed()
 
     def vision_callback(self, msg):
         try:
@@ -74,9 +74,9 @@ class TaskExecutor(Node):
         self.get_logger().info(f"📥 MENSAJE RECIBIDO DEL SLM: {msg.data}")
         
         # Si el robot está moviéndose o ya hay un plan esperando, lo ignoramos
-        # if self.is_executing or not self.task_queue.empty():
-        #     self.get_logger().warn("⏳ Ya estoy ejecutando una tarea. Espera a que termine...")
-        #     return  
+        if self.is_executing:
+            self.get_logger().warn("⏳ Ya estoy ejecutando una tarea. La pondré en cola, pero ten paciencia...")
+            # No hacemos return, dejamos que se encole, pero avisamos.
 
         try:
             plan = json.loads(msg.data)
@@ -159,38 +159,50 @@ def main(args=None):
     rclpy.init(args=args)
     node = TaskExecutor()
 
-    # Lanzamos el ROS executor en un hilo secundario SOLO para que escuche los topics
-    executor = rclpy.executors.MultiThreadedExecutor()
-    executor.add_node(node)
-    spin_thread = Thread(target=executor.spin, daemon=True)
-    spin_thread.start()
+    # --- MODELO DE EJECUCIÓN CORRECTO PARA PYMOVEIT2 ---
+    # No se usa un hilo de spin en segundo plano. La librería pymoveit2 gestiona su propio
+    # "spin" interno cuando se llama a una función bloqueante como `wait_until_executed`.
+    # Esto entraba en conflicto con nuestro MultiThreadedExecutor, causando el bloqueo.
+    #
+    # El flujo correcto es:
+    # 1. Dejar que las funciones de MoveIt2 bloqueen y hagan su trabajo.
+    # 2. En nuestro bucle principal, llamar a `rclpy.spin_once()` para procesar
+    #    manualmente los callbacks (como los mensajes del LLM) cuando el robot está inactivo.
 
-    # EL HILO PRINCIPAL: Bucle infinito vigilando la bandeja de entrada
+    # 1. Mover el robot a la posición inicial. Esta llamada es bloqueante.
+    node.go_to_start()
+
+    # 2. Bucle principal: procesa callbacks y tareas de la cola.
     try:
         while rclpy.ok():
+            # Procesa un callback pendiente (ej. de /robot_plan) si hay alguno.
+            # Es no-bloqueante y permite que el nodo siga "vivo" para recibir órdenes.
+            rclpy.spin_once(node, timeout_sec=0.1)
+
             try:
-                # Comprueba si hay algo en la bandeja (espera 0.5 seg y si no hay nada, repite el bucle)
-                coords = node.task_queue.get(timeout=0.5)
+                # Intenta coger una tarea de la cola (de forma no-bloqueante).
+                coords = node.task_queue.get_nowait()
                 
-                # Si llega aquí, es que hay un trabajo. ¡A mover el brazo de forma segura!
+                # Si llega aquí, es que hay trabajo. ¡A mover el brazo!
                 try:
                     node.is_executing = True
+                    # Esta función es bloqueante y usará el spinner interno de pymoveit2.
                     node.run_pick_and_place_sequence(coords)
                 except Exception as e:
                     node.get_logger().error(f"⚠️ Error durante la ejecución de la tarea: {e}")
                 finally:
-                    # Aseguramos que SIEMPRE se libere el flag, haya error o no
                     node.is_executing = False
                     node.get_logger().info("🟢 Executor LIBRE y en posición HOME. Esperando siguiente orden...")
                 
             except queue.Empty:
-                pass # La bandeja está vacía, no pasa nada, el bucle sigue girando.
+                # La cola está vacía, es el estado normal mientras espera órdenes. No hacemos nada.
+                pass
                 
     except KeyboardInterrupt:
         pass
     finally:
+        node.destroy_node()
         rclpy.shutdown()
-        spin_thread.join()
 
 
 if __name__ == "__main__":
