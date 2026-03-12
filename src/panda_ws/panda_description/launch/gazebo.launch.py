@@ -39,8 +39,9 @@ def generate_launch_description():
         model_path
         )
 
-    ros_distro = os.environ["ROS_DISTRO"]
-    is_ignition = "True" if ros_distro == "humble" else "False"
+    # Este launch usa ros_gz_sim, por lo que forzamos la rama "gz"
+    # aunque el entorno sea ROS 2 Humble.
+    is_ignition = "False"
 
     robot_description = ParameterValue(Command([
             "xacro ",
@@ -89,14 +90,16 @@ def generate_launch_description():
         executable="parameter_bridge",
         arguments=[
             "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
-            "/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo"
+            "/camera/image_raw/image@sensor_msgs/msg/Image[gz.msgs.Image",
+            "/camera/image_raw/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo",
+            "/camera/image_raw/depth_image@sensor_msgs/msg/Image[gz.msgs.Image",
+            "/camera/image_raw/points@sensor_msgs/msg/PointCloud2[gz.msgs.PointCloudPacked",
+            "--ros-args",
+            "-r", "/camera/image_raw/image:=/camera/image_raw",
+            "-r", "/camera/image_raw/camera_info:=/camera/camera_info",
+            "-r", "/camera/image_raw/depth_image:=/camera/depth_image",
+            "-r", "/camera/image_raw/points:=/camera/points",
         ],
-    )
-
-    ros_gz_image_bridge = Node(
-        package="ros_gz_image",
-        executable="image_bridge",
-        arguments=["/camera/image_raw"]
     )
 
     return LaunchDescription([
@@ -107,5 +110,4 @@ def generate_launch_description():
         gazebo,
         gz_spawn_entity,
         gz_ros2_bridge,
-        ros_gz_image_bridge
     ])

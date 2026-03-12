@@ -11,7 +11,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'numpy', 'ultralytics'],
     zip_safe=True,
     maintainer='utk',
     maintainer_email='kutkarsh706@gmail.com',
@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'color_detector = panda_vision.color_detector:main',
+            'object_detector = panda_vision.object_detector:main',
         ],
     },
 )

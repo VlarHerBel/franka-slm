@@ -46,8 +46,8 @@ def generate_launch_description():
     # ------------------- Vision Node -------------------
     vision_node = Node(
         package="panda_vision",
-        executable="color_detector",
-        name="color_detector",
+        executable="object_detector",
+        name="object_detector",
         output="screen"
     )
 

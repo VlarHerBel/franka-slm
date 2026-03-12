@@ -24,7 +24,7 @@
     </link>
     
     <joint name="camera_joint" type="fixed">
-        <origin xyz="0.6 0 1.0" rpy="0.0 0.0 0.0"/>
+        <origin xyz="0.9 0 1.24" rpy="0.0 0.0 0.0"/>
         <parent link="panda_link0"/>
         <child link="camera_link"/>
     </joint>
@@ -38,19 +38,19 @@
     </joint>
 
     <gazebo reference="camera_link">
-        <sensor name="camera" type="camera">
+        <sensor name="camera" type="rgbd_camera">
             <pose>0 0 0 0 1.57 0</pose>
             <visualize>true</visualize>
             <update_rate>10.0</update_rate>
-            <alwaysOn>true</alwaysOn>
+            <always_on>true</always_on>
             <topic>camera/image_raw</topic>
             <gz_frame_id>camera_link_optical</gz_frame_id>
             <camera name="intel_realsense_r200">
                 <camera_info_topic>camera/camera_info</camera_info_topic>
-                <horizontal_fov>1.0</horizontal_fov>
+                <horizontal_fov>1.05</horizontal_fov>
                 <image>
-                    <width>640</width>
-                    <height>320</height>
+                    <width>1280</width>
+                    <height>960</height>
                     <format>R8G8B8</format>
                 </image>
                 <clip>
@@ -59,6 +59,6 @@
                 </clip>
             </camera>
         </sensor>
-  </gazebo>
+    </gazebo>
 
 </robot>
