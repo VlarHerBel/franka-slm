@@ -35,6 +35,7 @@ class ObjectDetector(Node):
         self.declare_parameter("target_frame", "panda_link0")
         self.declare_parameter("backend_mode", "hybrid")
         self.declare_parameter("model_path", "yolo11n-seg.pt")
+        self.declare_parameter("camera_optical_frame", "camera_link_optical")
         self.declare_parameter("confidence_threshold", 0.35)
         self.declare_parameter("max_sync_slop_sec", 0.15)
         self.declare_parameter("min_mask_pixels", 200)
@@ -53,6 +54,7 @@ class ObjectDetector(Node):
         self.target_frame = self.get_parameter("target_frame").value
         self.backend_mode = self.get_parameter("backend_mode").value
         self.model_path = self.get_parameter("model_path").value
+        self.camera_optical_frame = self.get_parameter("camera_optical_frame").value
         self.confidence_threshold = float(
             self.get_parameter("confidence_threshold").value
         )
@@ -230,7 +232,8 @@ class ObjectDetector(Node):
             detections,
             bgr,
             depth_m,
-            image_msg.header.frame_id or self.camera_info.header.frame_id,
+            image_msg.header.frame_id,
+            self.camera_info.header.frame_id if self.camera_info is not None else "",
         )
         self.log_detections_if_changed(final_detections)
         debug_frame = self.annotate_debug_frame(
@@ -344,13 +347,16 @@ class ObjectDetector(Node):
             if area > table_area * self.max_table_object_area_ratio:
                 continue
 
-            geometry = self.describe_geometry(mask)
+            local_table_depth = self.estimate_local_table_depth(
+                mask, depth_m, table_mask, table_depth
+            )
+            geometry = self.describe_geometry(mask, depth_m, local_table_depth)
             if geometry is None:
                 continue
 
             x, y, w, h = cv2.boundingRect(mask.astype(np.uint8))
             color_hint = self.describe_color(bgr, mask)
-            shape_hint = self.describe_shape(geometry)
+            shape_hint = geometry["shape"]
             label_parts = [part for part in [color_hint, shape_hint] if part]
             label_name = "_".join(label_parts) if label_parts else "object"
 
@@ -374,7 +380,7 @@ class ObjectDetector(Node):
             )
             cv2.putText(
                 debug_frame,
-                f"{label_name} {geometry['orientation_deg']:.0f}deg",
+                f"{label_name} {geometry['grasp_yaw_deg']:.0f}deg",
                 (x, max(0, y - 6)),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.6,
@@ -464,6 +470,18 @@ class ObjectDetector(Node):
         y2 = min(height, y + h + margin)
         mask[y1:y2, x1:x2] = True
         return table_depth, mask
+
+    def estimate_local_table_depth(self, object_mask, depth_m, table_mask, fallback_depth):
+        object_mask_u8 = object_mask.astype(np.uint8)
+        kernel = np.ones((31, 31), np.uint8)
+        dilated = cv2.dilate(object_mask_u8, kernel, iterations=1).astype(bool)
+        ring_mask = dilated & table_mask & (~object_mask)
+        ring_depth = depth_m[ring_mask & np.isfinite(depth_m) & (depth_m > 0.05)]
+
+        if ring_depth.size < 80:
+            return float(fallback_depth)
+
+        return float(np.percentile(ring_depth, 55))
 
     def split_foreground_instances(self, foreground, bgr):
         num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
@@ -558,47 +576,39 @@ class ObjectDetector(Node):
 
     def annotate_debug_frame(self, frame, backend_used, raw_count, final_detections):
         annotated = frame.copy()
-        panel_height = max(100, 92 + 22 * min(6, len(final_detections)))
-        cv2.rectangle(annotated, (8, 8), (470, panel_height), (30, 30, 30), -1)
-        cv2.putText(
-            annotated,
-            f"backend: {backend_used}",
-            (18, 32),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.55,
-            (255, 255, 255),
-            2,
-        )
-        cv2.putText(
-            annotated,
-            f"mask detections: {raw_count}",
-            (18, 54),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.55,
-            (255, 255, 255),
-            2,
-        )
-        cv2.putText(
-            annotated,
-            f"3d detections: {len(final_detections)}",
-            (18, 76),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.55,
-            (255, 255, 255),
-            2,
-        )
+        height, width = annotated.shape[:2]
 
-        for index, detection in enumerate(final_detections[:6]):
-            x, y, z = detection["position"]
+        for det in final_detections:
+            px = det.get("pixel")
+            if not px:
+                continue
+            u, v = int(px[0]), int(px[1])
+            shape = det.get("shape", "?")
+            dims = det.get("dimensions_m", [0, 0, 0])
+            yaw = det.get("grasp_yaw_deg", 0.0)
+            label = f"{det['id']}:{shape}"
+            dim_text = f"{dims[0]*100:.1f}x{dims[1]*100:.1f}x{dims[2]*100:.1f}cm"
+
+            cv2.circle(annotated, (u, v), 5, (0, 255, 0), -1)
             cv2.putText(
-                annotated,
-                f"{detection['id']} {detection.get('orientation_deg', 0.0):.0f}deg: ({x:.3f}, {y:.3f}, {z:.3f})",
-                (18, 102 + index * 22),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.47,
-                (255, 255, 255),
-                1,
+                annotated, label,
+                (u + 8, max(14, v - 8)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1,
             )
+            cv2.putText(
+                annotated, dim_text,
+                (u + 8, v + 16),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.38, (200, 200, 200), 1,
+            )
+
+        bar_text = f"{backend_used} | masks:{raw_count} | objetos:{len(final_detections)}"
+        text_w = cv2.getTextSize(bar_text, cv2.FONT_HERSHEY_SIMPLEX, 0.48, 1)[0][0]
+        cv2.rectangle(annotated, (8, height - 34), (text_w + 24, height - 8), (30, 30, 30), -1)
+        cv2.putText(
+            annotated, bar_text,
+            (16, height - 16),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.48, (255, 255, 255), 1,
+        )
         return annotated
 
     def render_waiting_window(self, lines):
@@ -655,19 +665,33 @@ class ObjectDetector(Node):
                 ]
             )
 
-    def build_3d_detections(self, detections, bgr, depth_m, source_frame):
+    def build_3d_detections(
+        self, detections, bgr, depth_m, image_frame_id="", camera_info_frame_id=""
+    ):
         if self.camera_info is None:
             return []
 
-        transform = self.lookup_transform(source_frame)
-        if transform is None:
+        transform, source_frame = self.lookup_best_transform(
+            [
+                self.camera_optical_frame,
+                image_frame_id,
+                camera_info_frame_id,
+                "camera_link_optical",
+                "camera_link",
+            ]
+        )
+        if transform is None or source_frame is None:
             return []
 
         counts = defaultdict(int)
         final_detections = []
 
         for detection in detections:
-            point_cam, pixel = self.compute_3d_point(detection["mask"], depth_m)
+            point_cam, pixel = self.compute_3d_point(
+                detection["mask"],
+                depth_m,
+                geometry=detection.get("geometry"),
+            )
             if point_cam is None:
                 continue
 
@@ -684,6 +708,7 @@ class ObjectDetector(Node):
                 {
                     "id": indexed_label,
                     "label": detection["label"],
+                    "shape": detection.get("geometry", {}).get("shape"),
                     "confidence": round(float(detection["confidence"]), 4),
                     "position": [round(float(value), 4) for value in point_base],
                     "bbox": detection["bbox"],
@@ -691,6 +716,19 @@ class ObjectDetector(Node):
                     "orientation_deg": round(
                         float(detection.get("geometry", {}).get("orientation_deg", 0.0)), 2
                     ),
+                    "grasp_yaw_deg": round(
+                        float(detection.get("geometry", {}).get("grasp_yaw_deg", 0.0)), 2
+                    ),
+                    "dimensions_m": [
+                        round(float(value), 4)
+                        for value in detection.get("geometry", {}).get(
+                            "dimensions_m", [0.0, 0.0, 0.0]
+                        )
+                    ],
+                    "height_m": round(
+                        float(detection.get("geometry", {}).get("height_m", 0.0)), 4
+                    ),
+                    "grasp_type": detection.get("geometry", {}).get("grasp_type"),
                     "source_frame": source_frame,
                     "color_hint": detection.get("color_hint"),
                 }
@@ -698,15 +736,21 @@ class ObjectDetector(Node):
 
         return final_detections
 
-    def compute_3d_point(self, mask, depth_m):
+    def compute_3d_point(self, mask, depth_m, geometry=None):
         valid_mask = mask & np.isfinite(depth_m) & (depth_m > 0.05)
         ys, xs = np.where(valid_mask)
         if xs.size == 0:
             return None, None
 
-        centroid_u = int(np.median(xs))
-        centroid_v = int(np.median(ys))
-        centroid_depth = float(np.median(depth_m[valid_mask]))
+        if geometry is not None and geometry.get("grasp_pixel") is not None:
+            centroid_u, centroid_v = geometry["grasp_pixel"]
+            centroid_depth = float(
+                geometry.get("grasp_depth_m", np.median(depth_m[valid_mask]))
+            )
+        else:
+            centroid_u = int(np.median(xs))
+            centroid_v = int(np.median(ys))
+            centroid_depth = float(np.median(depth_m[valid_mask]))
 
         fx = float(self.camera_info.k[0])
         fy = float(self.camera_info.k[4])
@@ -734,6 +778,17 @@ class ObjectDetector(Node):
         ) as exc:
             self.get_logger().warn(f"No se pudo obtener TF {source_frame}->{self.target_frame}: {exc}")
             return None
+
+    def lookup_best_transform(self, source_frames):
+        tried = []
+        for source_frame in source_frames:
+            if not source_frame or source_frame in tried:
+                continue
+            tried.append(source_frame)
+            transform = self.lookup_transform(source_frame)
+            if transform is not None:
+                return transform, source_frame
+        return None, None
 
     def transform_point(self, point, transform):
         translation = np.array(
@@ -785,7 +840,64 @@ class ObjectDetector(Node):
             return "magenta"
         return None
 
-    def describe_geometry(self, mask):
+    # ------------------------------------------------------------------
+    # 3D point-cloud extraction & geometry
+    # ------------------------------------------------------------------
+
+    def extract_object_pointcloud(self, mask, depth_m):
+        """Convert a binary mask + depth map into Nx3 points in camera frame."""
+        if self.camera_info is None:
+            return np.empty((0, 3), dtype=np.float32)
+
+        fx = float(self.camera_info.k[0])
+        fy = float(self.camera_info.k[4])
+        cx = float(self.camera_info.k[2])
+        cy = float(self.camera_info.k[5])
+
+        valid = mask & np.isfinite(depth_m) & (depth_m > 0.05)
+        vs, us = np.where(valid)
+        if us.size == 0:
+            return np.empty((0, 3), dtype=np.float32)
+
+        zs = depth_m[vs, us].astype(np.float32)
+        xs = ((us.astype(np.float32) - cx) * zs / fx)
+        ys = ((vs.astype(np.float32) - cy) * zs / fy)
+
+        return np.column_stack((xs, ys, zs))
+
+    @staticmethod
+    def compute_obb_3d(points):
+        """Oriented bounding box from an Nx3 point cloud.
+
+        Returns (dimensions_sorted, axes, center) where dimensions_sorted is
+        [largest, middle, smallest] in metres, axes is 3x3 (rows = principal
+        directions), and center is the OBB centre.
+        """
+        if points.shape[0] < 4:
+            return None
+
+        center = points.mean(axis=0)
+        centered = points - center
+
+        cov = np.cov(centered, rowvar=False)
+        eigenvalues, eigenvectors = np.linalg.eigh(cov)
+
+        order = np.argsort(eigenvalues)[::-1]
+        axes = eigenvectors[:, order].T
+
+        projected = centered @ axes.T
+        mins = projected.min(axis=0)
+        maxs = projected.max(axis=0)
+        dims = maxs - mins
+
+        sort_idx = np.argsort(dims)[::-1]
+        dims_sorted = dims[sort_idx]
+        axes_sorted = axes[sort_idx]
+
+        obb_center = center + axes.T @ ((mins + maxs) / 2.0)
+        return dims_sorted, axes_sorted, obb_center
+
+    def describe_geometry(self, mask, depth_m, table_depth):
         contour_mask = mask.astype(np.uint8) * 255
         contours, _ = cv2.findContours(
             contour_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
@@ -799,60 +911,146 @@ class ObjectDetector(Node):
         if contour_area <= 1.0 or perimeter <= 1.0:
             return None
 
+        valid_mask = mask & np.isfinite(depth_m) & (depth_m > 0.05)
+        valid_depth_values = depth_m[valid_mask]
+        if valid_depth_values.size == 0:
+            return None
+
+        pc = self.extract_object_pointcloud(mask, depth_m)
+        if pc.shape[0] < 10:
+            return None
+
+        obb = self.compute_obb_3d(pc)
+        if obb is None:
+            return None
+
+        dims_sorted, axes, obb_center = obb
+        dim_x, dim_y, dim_z = [float(d) for d in dims_sorted]
+
+        top_surface_depth = float(np.percentile(valid_depth_values, 12))
+        height_m = max(0.0, float(table_depth) - top_surface_depth)
+        grasp_pixel = self.compute_top_surface_grasp_pixel(
+            valid_mask, depth_m, top_surface_depth
+        )
         rect = cv2.minAreaRect(contour)
         (center_x, center_y), (size_w, size_h), rect_angle = rect
-        major = max(float(size_w), float(size_h))
-        minor = max(1.0, min(float(size_w), float(size_h)))
-        aspect_ratio = major / minor
+        box_points = cv2.boxPoints(rect).astype(np.int32)
+
         orientation_deg = float(rect_angle)
         if size_w < size_h:
             orientation_deg += 90.0
         if orientation_deg >= 90.0:
             orientation_deg -= 180.0
 
-        rect_area = max(1.0, float(size_w) * float(size_h))
-        fill_ratio = contour_area / rect_area
+        fill_ratio = contour_area / max(1.0, float(size_w) * float(size_h))
         circularity = 4.0 * np.pi * contour_area / (perimeter * perimeter)
-        approx = cv2.approxPolyDP(contour, 0.04 * perimeter, True)
-        box_points = cv2.boxPoints(rect).astype(np.int32)
+        depth_std = float(np.std(pc[:, 2]))
+
+        shape = self.describe_shape_3d(
+            dim_x=dim_x, dim_y=dim_y, dim_z=dim_z,
+            height_m=height_m,
+            fill_ratio=fill_ratio,
+            circularity=circularity,
+            depth_std=depth_std,
+        )
+        grasp_type, grasp_yaw_deg = self.estimate_grasp(
+            shape, orientation_deg, dim_x, dim_y, height_m
+        )
 
         return {
             "center": (float(center_x), float(center_y)),
-            "major_axis_px": major,
-            "minor_axis_px": minor,
-            "aspect_ratio": aspect_ratio,
             "orientation_deg": orientation_deg,
             "fill_ratio": fill_ratio,
             "circularity": circularity,
-            "vertex_count": len(approx),
             "box_points": box_points,
+            "grasp_pixel": grasp_pixel,
+            "grasp_depth_m": top_surface_depth,
+            "shape": shape,
+            "grasp_type": grasp_type,
+            "grasp_yaw_deg": grasp_yaw_deg,
+            "height_m": height_m,
+            "depth_std": depth_std,
+            "dimensions_m": [dim_x, dim_y, dim_z],
         }
 
-    def describe_shape(self, geometry):
-        if geometry is None:
-            return "object"
+    def compute_top_surface_grasp_pixel(self, valid_mask, depth_m, top_surface_depth):
+        top_band_mask = valid_mask & (depth_m <= (top_surface_depth + 0.012))
+        if int(top_band_mask.sum()) < max(40, self.min_mask_pixels // 8):
+            top_band_mask = valid_mask
 
-        aspect_ratio = float(geometry["aspect_ratio"])
-        fill_ratio = float(geometry["fill_ratio"])
-        circularity = float(geometry["circularity"])
-        vertex_count = int(geometry["vertex_count"])
+        top_band_u8 = top_band_mask.astype(np.uint8)
+        distance = cv2.distanceTransform(top_band_u8, cv2.DIST_L2, 5)
+        if float(distance.max()) > 0.0:
+            _, _, _, max_loc = cv2.minMaxLoc(distance)
+            return [int(max_loc[0]), int(max_loc[1])]
 
-        if aspect_ratio < 1.25 and circularity > 0.8 and fill_ratio < 0.9:
-            return "cylinder"
-        if aspect_ratio > 1.7:
-            if fill_ratio < 0.83 and circularity > 0.45:
+        ys, xs = np.where(top_band_mask)
+        if xs.size == 0:
+            return None
+        return [int(np.median(xs)), int(np.median(ys))]
+
+    # ------------------------------------------------------------------
+    # 3D shape classifier
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def describe_shape_3d(
+        *, dim_x, dim_y, dim_z, height_m, fill_ratio, circularity, depth_std
+    ):
+        if max(dim_x, dim_y, dim_z) < 1e-4:
+            return "unknown"
+
+        sorted_dims = sorted([dim_x, dim_y, dim_z], reverse=True)
+        d_large, d_mid, d_small = sorted_dims
+
+        ratio_12 = d_mid / max(d_large, 1e-6)
+        ratio_13 = d_small / max(d_large, 1e-6)
+
+        if circularity > 0.78 and fill_ratio > 0.74:
+            if ratio_12 > 0.60:
                 return "cylinder"
+
+        if ratio_12 > 0.65 and ratio_13 > 0.55:
+            return "cube"
+
+        if ratio_13 < 0.30:
+            if ratio_12 > 0.55:
+                return "flat_part"
+            return "elongated"
+
+        if depth_std > 0.015 and fill_ratio < 0.60:
+            return "tetrahedron_like"
+
+        if ratio_12 > 0.55 and ratio_13 >= 0.30:
             return "box"
-        if vertex_count <= 6 and fill_ratio > 0.72:
-            return "box"
-        if circularity > 0.78:
-            return "cylinder"
+
         return "box"
+
+    # ------------------------------------------------------------------
+    # Grasp strategy
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def estimate_grasp(shape, orientation_deg, dim_x, dim_y, height_m):
+        if shape == "cylinder":
+            return "top_center", 0.0
+        if shape == "cube":
+            return "top_center", 0.0
+        if shape == "tetrahedron_like":
+            return "top_center_cautious", orientation_deg
+
+        min_horizontal = min(dim_x, dim_y)
+        if min_horizontal > 0.08:
+            return "top_parallel", orientation_deg
+
+        return "top_parallel", orientation_deg
 
     def log_detections_if_changed(self, final_detections):
         summary = tuple(
             (
                 detection["id"],
+                detection.get("shape"),
+                round(float(detection.get("grasp_yaw_deg", 0.0)), 1),
                 tuple(round(value, 3) for value in detection["position"]),
             )
             for detection in final_detections
@@ -865,12 +1063,18 @@ class ObjectDetector(Node):
             self.get_logger().info("Sin detecciones 3D validas en la escena.")
             return
 
-        rendered = ", ".join(
-            f"{detection['id']}@{round(float(detection.get('orientation_deg', 0.0)), 1)}deg="
-            f"{tuple(round(value, 3) for value in detection['position'])}"
-            for detection in final_detections
-        )
-        self.get_logger().info(f"Detecciones 3D: {rendered}")
+        header = f"{'ID':<22} {'Shape':<16} {'Grasp':<20} {'Dims(cm)':<22} {'Pos(m)'}"
+        lines = [header, "-" * len(header)]
+        for d in final_detections:
+            dims = d.get("dimensions_m", [0, 0, 0])
+            pos = d["position"]
+            dims_str = f"{dims[0]*100:.1f}x{dims[1]*100:.1f}x{dims[2]*100:.1f}"
+            pos_str = f"({pos[0]:.3f},{pos[1]:.3f},{pos[2]:.3f})"
+            grasp_str = f"{d.get('grasp_type','?')} {d.get('grasp_yaw_deg',0):.0f}deg"
+            lines.append(
+                f"{d['id']:<22} {d.get('shape','?'):<16} {grasp_str:<20} {dims_str:<22} {pos_str}"
+            )
+        self.get_logger().info("Detecciones 3D:\n" + "\n".join(lines))
 
     @staticmethod
     def sanitize_label(label):

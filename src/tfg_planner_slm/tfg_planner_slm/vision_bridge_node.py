@@ -1,8 +1,10 @@
+import json
+import time
+
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-import json
-import time
+
 
 class VisionBridge(Node):
     def __init__(self):
@@ -46,7 +48,7 @@ class VisionBridge(Node):
                 x, y, z = float(parts[1]), float(parts[2]), float(parts[3])
                 name_map = {"R": "red_cube", "G": "green_cube", "B": "blue_cube"}
                 obj_name = name_map.get(tag, tag)
-                self.update_object(obj_name, [x, y, z])
+                self.update_object(obj_name, {"position": [x, y, z]})
         except Exception as e:
             self.get_logger().warn(f"Error traduciendo coordenadas legacy: {e}")
 
@@ -58,28 +60,40 @@ class VisionBridge(Node):
             return
 
         detections = payload.get("detections", [])
-        for detection in detections:
-            object_id = detection.get("id") or detection.get("label")
-            position = detection.get("position")
+        for det in detections:
+            object_id = det.get("id") or det.get("label")
+            position = det.get("position")
             if not object_id or not isinstance(position, list) or len(position) != 3:
                 continue
-            self.update_object(object_id, position)
 
-    def update_object(self, object_id, position):
+            enriched = {
+                "position": [float(v) for v in position],
+                "shape": det.get("shape"),
+                "dimensions_m": det.get("dimensions_m", [0.0, 0.0, 0.0]),
+                "height_m": float(det.get("height_m", 0.0)),
+                "grasp_type": det.get("grasp_type"),
+                "grasp_yaw_deg": float(det.get("grasp_yaw_deg", 0.0)),
+                "color_hint": det.get("color_hint"),
+            }
+            self.update_object(object_id, enriched)
+
+    def update_object(self, object_id, obj_data):
         current_time = time.time()
-        new_position = [float(value) for value in position]
+        new_pos = obj_data["position"]
 
         if object_id in self.detected_objects:
-            old_position = self.detected_objects[object_id]
+            old = self.detected_objects[object_id]
+            old_pos = old.get("position", new_pos)
             alpha = self.smoothing_alpha
             smoothed = [
-                round((1.0 - alpha) * old_position[index] + alpha * new_position[index], 4)
-                for index in range(3)
+                round((1.0 - alpha) * old_pos[i] + alpha * new_pos[i], 4)
+                for i in range(3)
             ]
-            self.detected_objects[object_id] = smoothed
+            obj_data["position"] = smoothed
         else:
-            self.detected_objects[object_id] = [round(value, 4) for value in new_position]
+            obj_data["position"] = [round(v, 4) for v in new_pos]
 
+        self.detected_objects[object_id] = obj_data
         self.last_seen[object_id] = current_time
 
     def prune_stale_objects(self):
