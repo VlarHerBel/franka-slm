@@ -66,11 +66,12 @@ class PickAndPlace(Node):
         )
         self.get_logger().info(f"Waiting for {self.target_color} from /color_coordinates...")
 
-        # Predefined joint positions (in radians)
-        self.start_joints = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, math.radians(-125.0)]
-        self.home_joints  = [0.0, 0.0, 0.0, math.radians(-90.0), 0.0, math.radians(92.0), math.radians(50.0)]
-        self.drop_joints  = [math.radians(-155.0), math.radians(30.0), math.radians(-20.0),
-                             math.radians(-124.0), math.radians(44.0), math.radians(163.0), math.radians(7.0)]
+        # Predefined joint positions (in radians) -- within Panda soft limits, arm to the side
+        self.start_joints = [math.radians(-90.0), math.radians(-18.0), 0.0,
+                             math.radians(-126.0), 0.0, math.radians(108.0), math.radians(45.0)]
+        self.home_joints  = list(self.start_joints)
+        self.drop_joints  = [math.radians(-165.0), math.radians(25.0), math.radians(0.0),
+                             math.radians(-100.0), math.radians(0.0), math.radians(150.0), math.radians(45.0)]
 
         # Move to start joint configuration
         self.moveit2.move_to_configuration(self.start_joints)

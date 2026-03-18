@@ -49,7 +49,11 @@ class ObjectDetector(Node):
         self.declare_parameter("table_depth_tolerance_m", 0.035)
         self.declare_parameter("table_roi_ratio", 0.45)
         self.declare_parameter("table_mask_margin_px", 12)
-        self.declare_parameter("max_table_object_area_ratio", 0.28)
+        self.declare_parameter("max_table_object_area_ratio", 0.15)
+        self.declare_parameter("max_object_dimension_m", 0.25)
+        # Merge "ghost duplicates" produced by splitting the same physical object.
+        # Criteria: same label and close XY in the base frame.
+        self.declare_parameter("merge_duplicate_xy_dist_m", 0.06)
 
         self.target_frame = self.get_parameter("target_frame").value
         self.backend_mode = self.get_parameter("backend_mode").value
@@ -90,6 +94,12 @@ class ObjectDetector(Node):
         )
         self.max_table_object_area_ratio = float(
             self.get_parameter("max_table_object_area_ratio").value
+        )
+        self.max_object_dimension_m = float(
+            self.get_parameter("max_object_dimension_m").value
+        )
+        self.merge_duplicate_xy_dist_m = float(
+            self.get_parameter("merge_duplicate_xy_dist_m").value
         )
         self.debug_window_name = "object_detector_debug"
         self.last_logged_detection_summary = None
@@ -177,7 +187,11 @@ class ObjectDetector(Node):
         self.camera_info = msg
         if not self.received_camera_info:
             self.received_camera_info = True
-            self.get_logger().info("Recibido primer mensaje en /camera/camera_info")
+            self.get_logger().info(
+                f"Recibido primer mensaje en /camera/camera_info: "
+                f"width={msg.width}, height={msg.height}, "
+                f"K=[{msg.k[0]:.1f}, {msg.k[2]:.1f}, {msg.k[4]:.1f}, {msg.k[5]:.1f}]"
+            )
 
     def image_callback(self, msg):
         self.latest_image_msg = msg
@@ -228,6 +242,17 @@ class ObjectDetector(Node):
 
         depth_m = self.depth_to_meters(depth, depth_msg.encoding)
         detections, debug_frame, backend_used = self.detect_objects(bgr, depth_m)
+        if detections and not hasattr(self, "_logged_raw_det"):
+            self._logged_raw_det = True
+            self.get_logger().info(
+                f"Detecciones crudas ({backend_used}): {len(detections)} objetos. "
+                f"RGB shape={bgr.shape}, Depth shape={depth_m.shape}"
+            )
+            for d in detections:
+                self.get_logger().info(
+                    f"  -> label={d['label']}, mask_shape={d['mask'].shape}, "
+                    f"mask_sum={int(d['mask'].sum())}, bbox={d['bbox']}"
+                )
         final_detections = self.build_3d_detections(
             detections,
             bgr,
@@ -272,7 +297,9 @@ class ObjectDetector(Node):
 
         if self.model is not None and self.backend_mode == "hybrid":
             yolo_detections, yolo_annotated = self.run_ultralytics_segmentation(bgr)
-            if self.should_prefer_clusters(yolo_detections, cluster_detections, bgr.shape):
+            if cluster_detections and self.should_prefer_clusters(
+                yolo_detections, cluster_detections, bgr.shape
+            ):
                 return cluster_detections, cluster_annotated, "depth_clusters"
             if yolo_detections:
                 return yolo_detections, yolo_annotated, "ultralytics_seg"
@@ -298,9 +325,16 @@ class ObjectDetector(Node):
         boxes = result.boxes.xyxy.cpu().numpy().astype(int)
         scores = result.boxes.conf.cpu().numpy()
         classes = result.boxes.cls.cpu().numpy().astype(int)
+        img_h, img_w = bgr.shape[:2]
 
         for index, class_id in enumerate(classes):
-            mask = masks[index] > 0.5
+            raw_mask = masks[index] > 0.5
+            if raw_mask.shape[0] != img_h or raw_mask.shape[1] != img_w:
+                raw_mask = cv2.resize(
+                    raw_mask.astype(np.uint8), (img_w, img_h),
+                    interpolation=cv2.INTER_NEAREST,
+                ).astype(bool)
+            mask = raw_mask
             if int(mask.sum()) < self.min_mask_pixels:
                 continue
 
@@ -324,27 +358,58 @@ class ObjectDetector(Node):
 
         table_depth, table_mask = self.estimate_table_mask(depth_m)
         if table_mask is None:
-            table_depth = float(np.percentile(valid_depth, 70))
+            table_depth = float(np.percentile(valid_depth, 85))
             table_mask = np.ones_like(depth_m, dtype=bool)
         table_area = max(1, int(table_mask.sum()))
 
+        height_threshold = self.min_object_height_m
         foreground = (
             np.isfinite(depth_m)
             & (depth_m > 0.05)
-            & (depth_m < table_depth - self.min_object_height_m)
+            & (depth_m < table_depth - height_threshold)
             & table_mask
         ).astype(np.uint8)
 
-        kernel = np.ones((5, 5), np.uint8)
-        foreground = cv2.morphologyEx(foreground, cv2.MORPH_OPEN, kernel)
-        foreground = cv2.morphologyEx(foreground, cv2.MORPH_CLOSE, kernel)
+        fg_before_morph = int(foreground.sum())
 
+        kernel_open = np.ones((5, 5), np.uint8)
+        kernel_close = np.ones((5, 5), np.uint8)
+        foreground = cv2.morphologyEx(foreground, cv2.MORPH_OPEN, kernel_open)
+        foreground = cv2.morphologyEx(foreground, cv2.MORPH_CLOSE, kernel_close)
+
+        fg_after_morph = int(foreground.sum())
+
+        if not hasattr(self, "_logged_cluster_diag"):
+            self._logged_cluster_diag = True
+            self.get_logger().info(
+                f"Depth clusters: table_depth={table_depth:.4f}m, "
+                f"threshold={table_depth - height_threshold:.4f}m, "
+                f"fg_pixels_before_morph={fg_before_morph}, "
+                f"fg_pixels_after_morph={fg_after_morph}, "
+                f"table_mask_area={table_area}, "
+                f"depth_range=[{float(valid_depth.min()):.3f}, {float(valid_depth.max()):.3f}]"
+            )
+
+        img_h, img_w = foreground.shape[:2]
         detections = []
-        for mask in self.split_foreground_instances(foreground, bgr):
+        skipped_area = 0
+        skipped_geometry = 0
+        for mask in self.split_foreground_instances(foreground, bgr, depth_m):
             area = int(mask.sum())
             if area < self.min_mask_pixels:
                 continue
             if area > table_area * self.max_table_object_area_ratio:
+                skipped_area += 1
+                continue
+            bx, by, bw, bh = cv2.boundingRect(mask.astype(np.uint8))
+            edge_margin = 4
+            touches_edge = (
+                bx <= edge_margin
+                or by <= edge_margin
+                or (bx + bw) >= img_w - edge_margin
+                or (by + bh) >= img_h - edge_margin
+            )
+            if touches_edge and min(bw, bh) < 30:
                 continue
 
             local_table_depth = self.estimate_local_table_depth(
@@ -352,6 +417,7 @@ class ObjectDetector(Node):
             )
             geometry = self.describe_geometry(mask, depth_m, local_table_depth)
             if geometry is None:
+                skipped_geometry += 1
                 continue
 
             x, y, w, h = cv2.boundingRect(mask.astype(np.uint8))
@@ -388,6 +454,13 @@ class ObjectDetector(Node):
                 2,
             )
 
+        if not hasattr(self, "_logged_cluster_result"):
+            self._logged_cluster_result = True
+            self.get_logger().info(
+                f"Depth clusters result: {len(detections)} detections, "
+                f"skipped_area={skipped_area}, skipped_geometry={skipped_geometry}"
+            )
+
         table_overlay = table_mask.astype(np.uint8) * 255
         table_contours, _ = cv2.findContours(
             table_overlay, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
@@ -414,7 +487,7 @@ class ObjectDetector(Node):
             return None, None
 
         table_depth = float(
-            np.percentile(valid_central_depth, self.table_depth_percentile)
+            np.percentile(valid_central_depth, max(self.table_depth_percentile, 80.0))
         )
         depth_band = (
             np.isfinite(depth_m)
@@ -483,7 +556,7 @@ class ObjectDetector(Node):
 
         return float(np.percentile(ring_depth, 55))
 
-    def split_foreground_instances(self, foreground, bgr):
+    def split_foreground_instances(self, foreground, bgr, depth_m=None):
         num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
             foreground, connectivity=8
         )
@@ -504,6 +577,13 @@ class ObjectDetector(Node):
                 instance_masks.append(component_mask.astype(bool))
                 continue
 
+            depth_splits = self._try_depth_split(
+                component_mask.astype(bool), depth_m
+            )
+            if depth_splits is not None and len(depth_splits) > 1:
+                instance_masks.extend(depth_splits)
+                continue
+
             roi_mask = component_mask[y : y + h, x : x + w]
             roi_bgr = bgr[y : y + h, x : x + w].copy()
             split_masks = self.split_component_with_watershed(roi_mask, roi_bgr)
@@ -519,6 +599,63 @@ class ObjectDetector(Node):
                     instance_masks.append(full_mask)
 
         return instance_masks
+
+    def _try_depth_split(self, component_mask, depth_m, min_gap_m=0.025):
+        """Split a merged foreground component using depth histogram valleys."""
+        if depth_m is None:
+            return None
+        valid = component_mask & np.isfinite(depth_m) & (depth_m > 0.05)
+        depths = depth_m[valid]
+        if depths.size < self.min_mask_pixels * 2:
+            return None
+
+        depth_range = float(depths.max() - depths.min())
+        if depth_range < min_gap_m * 2:
+            return None
+
+        n_bins = max(20, int(depth_range / 0.005))
+        hist, bin_edges = np.histogram(depths, bins=n_bins)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2.0
+        bin_width = bin_edges[1] - bin_edges[0]
+
+        threshold = max(10, int(depths.size * 0.02))
+        gap_bins = np.where(hist < threshold)[0]
+        if gap_bins.size == 0:
+            return None
+
+        groups = np.split(gap_bins, np.where(np.diff(gap_bins) != 1)[0] + 1)
+        best_gap = None
+        best_gap_width = 0.0
+        for g in groups:
+            gap_width = float(len(g)) * bin_width
+            if gap_width >= min_gap_m and gap_width > best_gap_width:
+                best_gap = g
+                best_gap_width = gap_width
+        if best_gap is None:
+            return None
+
+        split_depth = float(bin_centers[best_gap[len(best_gap) // 2]])
+
+        mask_near = component_mask & np.isfinite(depth_m) & (depth_m <= split_depth)
+        mask_far = component_mask & np.isfinite(depth_m) & (depth_m > split_depth)
+
+        kernel = np.ones((3, 3), np.uint8)
+        mask_near_u8 = cv2.morphologyEx(
+            mask_near.astype(np.uint8), cv2.MORPH_OPEN, kernel
+        )
+        mask_far_u8 = cv2.morphologyEx(
+            mask_far.astype(np.uint8), cv2.MORPH_OPEN, kernel
+        )
+
+        results = []
+        for m in [mask_near_u8, mask_far_u8]:
+            nl, lbl, st, _ = cv2.connectedComponentsWithStats(m, connectivity=8)
+            for li in range(1, nl):
+                a = int(st[li, cv2.CC_STAT_AREA])
+                if a >= self.min_mask_pixels:
+                    results.append((lbl == li).astype(bool))
+
+        return results if len(results) >= 2 else None
 
     def split_component_with_watershed(self, component_mask, component_bgr):
         distance = cv2.distanceTransform(component_mask, cv2.DIST_L2, 5)
@@ -681,60 +818,184 @@ class ObjectDetector(Node):
             ]
         )
         if transform is None or source_frame is None:
+            if not hasattr(self, "_logged_tf_fail"):
+                self._logged_tf_fail = True
+                self.get_logger().warn(
+                    f"No se encontro TF. Frames intentados: "
+                    f"{[self.camera_optical_frame, image_frame_id, camera_info_frame_id]}"
+                )
             return []
 
         counts = defaultdict(int)
         final_detections = []
 
+        table_depth_est = self._quick_table_depth(depth_m)
+
         for detection in detections:
+            geometry = detection.get("geometry")
+            if geometry is None:
+                geometry = self.describe_geometry(
+                    detection["mask"], depth_m, table_depth_est
+                )
+                detection["geometry"] = geometry
+            if detection.get("color_hint") is None:
+                detection["color_hint"] = self.describe_color(bgr, detection["mask"])
+
             point_cam, pixel = self.compute_3d_point(
                 detection["mask"],
                 depth_m,
-                geometry=detection.get("geometry"),
+                geometry=geometry,
             )
             if point_cam is None:
+                if not hasattr(self, "_logged_3d_fail"):
+                    self._logged_3d_fail = True
+                    self.get_logger().warn(
+                        f"compute_3d_point devolvio None para '{detection['label']}'"
+                    )
                 continue
 
             point_base = self.transform_point(point_cam, transform)
             if point_base is None:
                 continue
 
-            counts[detection["label"]] += 1
-            indexed_label = detection["label"]
-            if sum(1 for d in detections if d["label"] == detection["label"]) > 1:
-                indexed_label = f"{detection['label']}_{counts[detection['label']]}"
+            bx, by, bz = float(point_base[0]), float(point_base[1]), float(point_base[2])
+            if not (0.0 < bx < 1.0 and -0.5 < by < 0.5 and 0.0 < bz < 1.0):
+                if not hasattr(self, "_logged_ws_fail"):
+                    self._logged_ws_fail = True
+                    self.get_logger().warn(
+                        f"Punto base fuera de workspace para '{detection['label']}': "
+                        f"bx={bx:.3f}, by={by:.3f}, bz={bz:.3f}"
+                    )
+                continue
 
+            geo = geometry or {}
+            det_label = detection["label"]
+            color_hint = detection.get("color_hint")
+            shape_hint = geo.get("shape")
+            if color_hint and shape_hint:
+                det_label = f"{color_hint}_{shape_hint}"
+
+            # Merge detections that are likely the same physical object.
+            # This avoids ghost duplicates caused by splitting/over-segmentation.
+            mask_area = int(detection["mask"].sum()) if "mask" in detection else 0
+            keep = True
+            for prev in final_detections:
+                prev_pos = prev.get("position", [0.0, 0.0, 0.0])
+                prev_x, prev_y = float(prev_pos[0]), float(prev_pos[1])
+                prev_z = float(prev_pos[2]) if len(prev_pos) >= 3 else 0.0
+                # Don't merge across different colors; this prevents
+                # accidentally losing the correct target label.
+                prev_color = prev.get("color_hint")
+                curr_color = detection.get("color_hint")
+                if prev_color is not None and curr_color is not None and prev_color != curr_color:
+                    continue
+                dist_xy = float(np.hypot(prev_x - bx, prev_y - by))
+                dist_z = abs(prev_z - bz)
+                if dist_xy <= self.merge_duplicate_xy_dist_m and dist_z <= 0.05:
+                    # Keep the largest segment as the representative.
+                    prev_area = int(prev.get("mask_area", 0))
+                    if mask_area > prev_area:
+                        prev.update(
+                            {
+                                "position": [
+                                    round(float(value), 4) for value in point_base
+                                ],
+                                "bbox": detection["bbox"],
+                                "pixel": [int(pixel[0]), int(pixel[1])],
+                                "orientation_deg": round(
+                                    float(geo.get("orientation_deg", 0.0)), 2
+                                ),
+                                "grasp_yaw_deg": round(
+                                    float(geo.get("grasp_yaw_deg", 0.0)), 2
+                                ),
+                                "dimensions_m": [
+                                    round(float(value), 4)
+                                    for value in geo.get(
+                                        "dimensions_m", [0.0, 0.0, 0.0]
+                                    )
+                                ],
+                                "height_m": round(float(geo.get("height_m", 0.0)), 4),
+                                "grasp_type": geo.get("grasp_type"),
+                                "color_hint": detection.get("color_hint"),
+                                "confidence": round(float(detection["confidence"]), 4),
+                                "mask_area": mask_area,
+                            }
+                        )
+                    keep = False
+                    break
+
+            if not keep:
+                continue
+
+            counts[det_label] += 1
+            indexed_label = det_label
+            if counts[det_label] > 1:
+                indexed_label = f"{det_label}_{counts[det_label]}"
             final_detections.append(
                 {
                     "id": indexed_label,
-                    "label": detection["label"],
-                    "shape": detection.get("geometry", {}).get("shape"),
+                    "label": det_label,
+                    "shape": geo.get("shape"),
                     "confidence": round(float(detection["confidence"]), 4),
                     "position": [round(float(value), 4) for value in point_base],
                     "bbox": detection["bbox"],
                     "pixel": [int(pixel[0]), int(pixel[1])],
-                    "orientation_deg": round(
-                        float(detection.get("geometry", {}).get("orientation_deg", 0.0)), 2
-                    ),
-                    "grasp_yaw_deg": round(
-                        float(detection.get("geometry", {}).get("grasp_yaw_deg", 0.0)), 2
-                    ),
+                    "orientation_deg": round(float(geo.get("orientation_deg", 0.0)), 2),
+                    "grasp_yaw_deg": round(float(geo.get("grasp_yaw_deg", 0.0)), 2),
                     "dimensions_m": [
                         round(float(value), 4)
-                        for value in detection.get("geometry", {}).get(
-                            "dimensions_m", [0.0, 0.0, 0.0]
-                        )
+                        for value in geo.get("dimensions_m", [0.0, 0.0, 0.0])
                     ],
-                    "height_m": round(
-                        float(detection.get("geometry", {}).get("height_m", 0.0)), 4
-                    ),
-                    "grasp_type": detection.get("geometry", {}).get("grasp_type"),
+                    "height_m": round(float(geo.get("height_m", 0.0)), 4),
+                    "grasp_type": geo.get("grasp_type"),
                     "source_frame": source_frame,
                     "color_hint": detection.get("color_hint"),
+                    "mask_area": mask_area,
                 }
             )
 
         return final_detections
+
+    def _quick_table_depth(self, depth_m):
+        valid = depth_m[np.isfinite(depth_m) & (depth_m > 0.05)]
+        if valid.size == 0:
+            return 0.76
+        return float(np.percentile(valid, 85))
+
+    def _get_scaled_intrinsics(self, image_height, image_width):
+        """Return (fx, fy, cx, cy) scaled to match the actual image resolution.
+
+        Gazebo may publish camera_info with width/height matching the image
+        but K values computed for a smaller internal render resolution.
+        We detect this when cx is far from image_width/2.
+        """
+        ci = self.camera_info
+        fx = float(ci.k[0])
+        fy = float(ci.k[4])
+        cx = float(ci.k[2])
+        cy = float(ci.k[5])
+
+        expected_cx = image_width / 2.0
+        expected_cy = image_height / 2.0
+
+        if cx > 0 and (expected_cx / cx) > 1.5:
+            sx = expected_cx / cx
+            sy = expected_cy / max(1.0, cy)
+            if not hasattr(self, "_logged_intrinsics_scale"):
+                self._logged_intrinsics_scale = True
+                self.get_logger().warn(
+                    f"camera_info K inconsistente con imagen: "
+                    f"cx={cx:.1f} (esperado ~{expected_cx:.1f}), "
+                    f"cy={cy:.1f} (esperado ~{expected_cy:.1f}). "
+                    f"Escalando x{sx:.2f}: fx {fx:.1f}->{fx*sx:.1f}, "
+                    f"cx {cx:.1f}->{cx*sx:.1f}"
+                )
+            fx *= sx
+            fy *= sy
+            cx *= sx
+            cy *= sy
+
+        return fx, fy, cx, cy
 
     def compute_3d_point(self, mask, depth_m, geometry=None):
         valid_mask = mask & np.isfinite(depth_m) & (depth_m > 0.05)
@@ -752,10 +1013,8 @@ class ObjectDetector(Node):
             centroid_v = int(np.median(ys))
             centroid_depth = float(np.median(depth_m[valid_mask]))
 
-        fx = float(self.camera_info.k[0])
-        fy = float(self.camera_info.k[4])
-        cx = float(self.camera_info.k[2])
-        cy = float(self.camera_info.k[5])
+        img_h, img_w = depth_m.shape[:2]
+        fx, fy, cx, cy = self._get_scaled_intrinsics(img_h, img_w)
 
         x = (centroid_u - cx) * centroid_depth / fx
         y = (centroid_v - cy) * centroid_depth / fy
@@ -849,10 +1108,8 @@ class ObjectDetector(Node):
         if self.camera_info is None:
             return np.empty((0, 3), dtype=np.float32)
 
-        fx = float(self.camera_info.k[0])
-        fy = float(self.camera_info.k[4])
-        cx = float(self.camera_info.k[2])
-        cy = float(self.camera_info.k[5])
+        img_h, img_w = depth_m.shape[:2]
+        fx, fy, cx, cy = self._get_scaled_intrinsics(img_h, img_w)
 
         valid = mask & np.isfinite(depth_m) & (depth_m > 0.05)
         vs, us = np.where(valid)
@@ -927,11 +1184,28 @@ class ObjectDetector(Node):
         dims_sorted, axes, obb_center = obb
         dim_x, dim_y, dim_z = [float(d) for d in dims_sorted]
 
+        if dim_x > self.max_object_dimension_m:
+            return None
+
         top_surface_depth = float(np.percentile(valid_depth_values, 12))
         height_m = max(0.0, float(table_depth) - top_surface_depth)
         grasp_pixel = self.compute_top_surface_grasp_pixel(
             valid_mask, depth_m, top_surface_depth
         )
+        # Use local depth around the selected grasp pixel.
+        # For elongated/sideways objects, depth is not constant across the
+        # top band; using the global percentile depth can shift the 3D point.
+        grasp_depth_m = top_surface_depth
+        if grasp_pixel is not None and isinstance(grasp_pixel, (list, tuple)):
+            if len(grasp_pixel) == 2:
+                u, v = int(grasp_pixel[0]), int(grasp_pixel[1])
+                img_h, img_w = depth_m.shape[:2]
+                u = int(np.clip(u, 0, img_w - 1))
+                v = int(np.clip(v, 0, img_h - 1))
+                patch = depth_m[max(0, v - 1) : min(img_h, v + 2), max(0, u - 1) : min(img_w, u + 2)]
+                patch_valid = patch[np.isfinite(patch) & (patch > 0.05)]
+                if patch_valid.size > 0:
+                    grasp_depth_m = float(np.median(patch_valid))
         rect = cv2.minAreaRect(contour)
         (center_x, center_y), (size_w, size_h), rect_angle = rect
         box_points = cv2.boxPoints(rect).astype(np.int32)
@@ -964,7 +1238,7 @@ class ObjectDetector(Node):
             "circularity": circularity,
             "box_points": box_points,
             "grasp_pixel": grasp_pixel,
-            "grasp_depth_m": top_surface_depth,
+            "grasp_depth_m": grasp_depth_m,
             "shape": shape,
             "grasp_type": grasp_type,
             "grasp_yaw_deg": grasp_yaw_deg,
@@ -980,14 +1254,26 @@ class ObjectDetector(Node):
 
         top_band_u8 = top_band_mask.astype(np.uint8)
         distance = cv2.distanceTransform(top_band_u8, cv2.DIST_L2, 5)
-        if float(distance.max()) > 0.0:
-            _, _, _, max_loc = cv2.minMaxLoc(distance)
-            return [int(max_loc[0]), int(max_loc[1])]
 
         ys, xs = np.where(top_band_mask)
         if xs.size == 0:
             return None
-        return [int(np.median(xs)), int(np.median(ys))]
+
+        # Default to the top-band centroid. This keeps the grasp point
+        # aligned under the object region for elongated/sideways shapes.
+        centroid_u = int(np.median(xs))
+        centroid_v = int(np.median(ys))
+
+        max_value = float(distance.max())
+        if max_value > 0.0:
+            _, _, _, max_loc = cv2.minMaxLoc(distance)
+            max_u, max_v = int(max_loc[0]), int(max_loc[1])
+            # If the "center" from distance-transform is too far from the
+            # centroid, fall back to centroid (prevents endpoint picks).
+            if (abs(max_u - centroid_u) + abs(max_v - centroid_v)) <= 60:
+                return [max_u, max_v]
+
+        return [centroid_u, centroid_v]
 
     # ------------------------------------------------------------------
     # 3D shape classifier
@@ -1032,8 +1318,10 @@ class ObjectDetector(Node):
 
     @staticmethod
     def estimate_grasp(shape, orientation_deg, dim_x, dim_y, height_m):
+        # For sideways/lying objects, the gripper should be perpendicular
+        # to the principal axis of the object in the table plane.
         if shape == "cylinder":
-            return "top_center", 0.0
+            return "top_parallel", orientation_deg + 90.0
         if shape == "cube":
             return "top_center", 0.0
         if shape == "tetrahedron_like":
@@ -1041,9 +1329,9 @@ class ObjectDetector(Node):
 
         min_horizontal = min(dim_x, dim_y)
         if min_horizontal > 0.08:
-            return "top_parallel", orientation_deg
+            return "top_parallel", orientation_deg + 90.0
 
-        return "top_parallel", orientation_deg
+        return "top_parallel", orientation_deg + 90.0
 
     def log_detections_if_changed(self, final_detections):
         summary = tuple(
@@ -1070,9 +1358,12 @@ class ObjectDetector(Node):
             pos = d["position"]
             dims_str = f"{dims[0]*100:.1f}x{dims[1]*100:.1f}x{dims[2]*100:.1f}"
             pos_str = f"({pos[0]:.3f},{pos[1]:.3f},{pos[2]:.3f})"
-            grasp_str = f"{d.get('grasp_type','?')} {d.get('grasp_yaw_deg',0):.0f}deg"
+            shape = d.get('shape') or '?'
+            gtype = d.get('grasp_type') or '?'
+            gyaw = d.get('grasp_yaw_deg') or 0
+            grasp_str = f"{gtype} {gyaw:.0f}deg"
             lines.append(
-                f"{d['id']:<22} {d.get('shape','?'):<16} {grasp_str:<20} {dims_str:<22} {pos_str}"
+                f"{d['id']:<22} {shape:<16} {grasp_str:<20} {dims_str:<22} {pos_str}"
             )
         self.get_logger().info("Detecciones 3D:\n" + "\n".join(lines))
 

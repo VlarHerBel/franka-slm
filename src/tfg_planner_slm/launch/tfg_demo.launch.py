@@ -94,6 +94,7 @@ def generate_launch_description():
         executable="object_detector",
         name="object_detector",
         output="screen",
+        parameters=[{"use_sim_time": True}],
         condition=IfCondition(with_vision),
     )
 
@@ -102,6 +103,7 @@ def generate_launch_description():
         executable="vision_bridge_node",
         name="vision_bridge_node",
         output="screen",
+        parameters=[{"use_sim_time": True}],
         condition=IfCondition(with_vision),
     )
 

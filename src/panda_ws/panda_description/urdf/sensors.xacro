@@ -24,7 +24,7 @@
     </link>
     
     <joint name="camera_joint" type="fixed">
-        <origin xyz="0.60 0 1.12" rpy="0.0 0.0 0.0"/>
+        <origin xyz="0.60 0 1.12" rpy="0.0 1.5708 0.0"/>
         <parent link="panda_link0"/>
         <child link="camera_link"/>
     </joint>
@@ -39,7 +39,7 @@
 
     <gazebo reference="camera_link">
         <sensor name="camera" type="rgbd_camera">
-            <pose>0 0 0 0 1.57 0</pose>
+            <pose>0 0 0 0 0 0</pose>
             <visualize>true</visualize>
             <update_rate>10.0</update_rate>
             <always_on>true</always_on>
