@@ -1,0 +1,61 @@
+scene_id: demo_scene_02
+layout_version: v3_clear_table_transport
+target_label: cracker_box
+status: validated_pick_place
+
+object_pose:
+  semantic_center_xy: [0.455, 0.115]
+  top_z: 0.4700
+  yaw_rad: 2.9155
+
+candidate:
+  candidate_idx: 0
+  yaw_deg: 77.05
+  commanded_tcp_yaw_rad: 1.344703673205025
+  pregrasp_tcp: [0.455, 0.115, 0.5620]
+  grasp_tcp: [0.455, 0.115, 0.4370]
+  lift_tcp: [0.455, 0.115, 0.5870]
+  depth_from_top_m: 0.0330
+  ik_seed: pick_workspace_ready
+  prevalidation_source: demo_collision_off_final_descend
+  cartesian_descend_fraction: 1.0
+
+grasp:
+  strategy: top_down_short_axis
+  open_joint: 0.0399
+  close_joint: 0.0270
+  expected_width_m: 0.0600
+
+transport:
+  selected_transport_entry: vertical_raise_then_rear_retreat
+  route:
+    - carry_mid_high
+    - turn_back_extended_aligned
+    - box_front_high
+    - box_high
+  forbidden_waypoints:
+    - carry_front_high
+  first_hub: carry_mid_high
+  backend: direct_action
+
+place:
+  slot_index: 0
+  slot_name: slot_1
+  deposit_xy: [-0.370, 0.080]
+  release_tcp_z: 0.180
+  release_tcp_z_candidates: [0.180, 0.195, 0.210]
+  release_source: golden_place
+  approach_tcp_z: 0.400
+  retreat_tcp_z: 0.450
+
+validation:
+  result: validated_pick_place
+  grasp_contact_strict: PASS
+  attach_result: OK
+  post_lift_verify: OK
+  transport_entry_verify: OK
+  attached_direct_action_route_validate: OK
+  place_result: OK
+  detach_result: OK
+  return_home_after_place: OK
+  obstacles_disturbed: false

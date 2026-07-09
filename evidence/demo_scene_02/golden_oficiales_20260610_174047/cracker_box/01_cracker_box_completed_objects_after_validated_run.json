@@ -1,0 +1,20 @@
+{
+  "completed_entities": [
+    "runtime_ycb_cracker_box_0_635753"
+  ],
+  "completed_labels": [
+    "cracker_box"
+  ],
+  "completed_deposits": [
+    {
+      "label": "cracker_box",
+      "entity": "runtime_ycb_cracker_box_0_635753",
+      "slot_name": "slot_1",
+      "slot_index": 0,
+      "slot": 0,
+      "x": -0.37,
+      "y": 0.08,
+      "release_tcp_z": 0.3292383069992066
+    }
+  ]
+}

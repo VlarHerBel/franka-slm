@@ -1,0 +1,52 @@
+scene_id: demo_scene_02_3obj_nogolden
+description: "demo_scene_02_3obj: golden cracker/chips; sugar_box planifica en runtime"
+
+pick_order:
+  - cracker_box
+  - chips_can
+  - sugar_box
+
+objects:
+  cracker_box:
+    role: target_first
+    pose:
+      x: 0.455
+      y: 0.115
+      yaw: 2.9155
+    preferred_slot: 0
+
+  chips_can:
+    role: obstacle_then_target
+    pose:
+      x: 0.520
+      y: -0.095
+      yaw: 1.3953
+    preferred_slot: 1
+    seed: 1003
+
+  sugar_box:
+    role: obstacle_then_target
+    pose:
+      x: 0.630
+      y: -0.175
+      yaw: -3.0159
+    preferred_slot: 2
+
+transport_policy:
+  forbidden_waypoints_when_obstacles_remaining:
+    - carry_front_high
+  local_exit_candidates:
+    - rear_retreat_x_negative
+    - vertical_raise_then_rear_retreat
+  reconfiguration_waypoints:
+    - carry_mid_high
+  transport_route:
+    - carry_mid_high
+    - turn_back_extended_aligned
+    - box_front_high
+    - box_high
+  backend: direct_action
+
+place_policy:
+  slot_mode: ordered_near_to_far
+  use_food_safe_dynamic_release_z: true

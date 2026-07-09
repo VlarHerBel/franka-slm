@@ -1,0 +1,101 @@
+scene_id: demo_scene_01
+description: "Escena demo multiobjeto layout 01"
+
+pick_order:
+  - cracker_box
+  - chips_can
+  - sugar_box
+  - mustard_bottle
+
+objects:
+  cracker_box:
+    role: target_first
+    pose:
+      x: 0.470
+      y: 0.132
+      yaw: -0.6275
+    preferred_slot: 0
+
+  chips_can:
+    role: obstacle_then_target
+    pose:
+      x: 0.576
+      y: -0.014
+      yaw: -1.7533
+    preferred_slot: 1
+    seed: 1002
+
+  sugar_box:
+    role: obstacle_then_target
+    pose:
+      x: 0.430
+      y: -0.145
+      yaw: 0.8500
+    preferred_slot: 2
+
+  mustard_bottle:
+    role: obstacle_then_target
+    pose:
+      x: 0.715
+      y: -0.107
+      yaw: -2.9700
+    preferred_slot: 3
+
+transport_policy:
+  forbidden_waypoints_when_obstacles_remaining:
+    - carry_front_high
+
+  local_exit_candidates:
+    - rear_retreat_x_negative
+    - rear_retreat_x_negative_slight_raise
+    - vertical_raise_then_rear_retreat
+    - rear_retreat_x_negative_far
+    - rear_retreat_x_negative_raise_far
+
+  reconfiguration_waypoints:
+    - transport_ready_unwind
+    - carry_mid_high
+
+  transport_route:
+    - carry_mid_high
+    - turn_back_extended_aligned
+    - box_front_high
+    - box_high
+
+  backend: direct_action
+  validate_attached_swept_volume: true
+  defer_named_hub_to_deterministic_transport: true
+  use_lateral_transport_corridors: false
+
+safety:
+  obstacle_disturbance_xy_threshold_m: 0.010
+  obstacle_disturbance_z_threshold_m: 0.020
+  attached_transport_safety_margin_tolerance_m: 0.006
+  reconfiguration_min_table_clearance_m: 0.200
+  reconfiguration_min_xy_clearance_m: 0.080
+
+transport_phases:
+  local_escape:
+    - carry_safe_height
+    - rear_retreat_x_negative
+    - rear_retreat_x_negative_slight_raise
+    - vertical_raise_then_rear_retreat
+    - rear_retreat_x_negative_far
+    - rear_retreat_x_negative_raise_far
+  reconfiguration:
+    requires_zone_ok: true
+    backend: direct_action
+    waypoints:
+      - transport_ready_unwind
+      - carry_mid_high
+  global_transport:
+    backend: direct_action
+    waypoints:
+      - carry_mid_high
+      - turn_back_extended_aligned
+      - box_front_high
+      - box_high
+
+place_policy:
+  slot_mode: ordered_near_to_far
+  use_food_safe_dynamic_release_z: true

@@ -1,0 +1,6 @@
+sensor_msgs/PointCloud2 object_cloud
+string frame_id
+---
+geometry_msgs/Pose[] poses
+float32[] confidences
+bool success

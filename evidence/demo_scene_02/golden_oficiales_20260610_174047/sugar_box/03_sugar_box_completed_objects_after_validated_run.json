@@ -1,0 +1,20 @@
+{
+  "completed_entities": [
+    "runtime_ycb_sugar_box_0_455179"
+  ],
+  "completed_labels": [
+    "sugar_box"
+  ],
+  "completed_deposits": [
+    {
+      "label": "sugar_box",
+      "entity": "runtime_ycb_sugar_box_0_455179",
+      "slot_name": "slot_3",
+      "slot_index": 2,
+      "slot": 2,
+      "x": -0.37,
+      "y": -0.1,
+      "release_tcp_z": 0.33834190320968627
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+# Fuente canónica de goldens demo_scene_02 para SLM, Gazebo y documentación.
+# Runtime ROS sigue leyendo demo_candidate_cache (espejos listados abajo).
+manifest_id: demo_scene_02_golden_oficiales
+layout_version: v3_clear_table_transport
+scene_id: demo_scene_02
+bundle_date: "2026-06-10"
+bundle_dir: evidence/demo_scene_02/golden_oficiales_20260610_174047
+stable_symlink: evidence/demo_scene_02/golden_oficiales
+
+pick_order:
+  - cracker_box
+  - chips_can
+  - sugar_box
+  - mustard_bottle
+
+objects:
+  cracker_box:
+    order: 1
+    status: validated_pick_place
+    official_yaml: cracker_box/01_cracker_box_OFFICIAL_VALIDATED.yaml
+    official_log: cracker_box/01_cracker_box_OFFICIAL_VALIDATED_RUN.log
+    completed_state: cracker_box/01_cracker_box_completed_objects_after_validated_run.json
+    runtime_cache_yaml: src/panda_ws/panda_controller/config/demo_candidate_cache/demo_scene_02_cracker_box_golden.yaml
+    demo_profile: src/panda_ws/panda_controller/config/demo_profiles/demo_scene_02_cracker_box.yaml
+    place_slot_index: 0
+    preferred_slot: slot_1
+
+  chips_can:
+    order: 2
+    status: validated_pick_place
+    official_yaml: chips_can/02_chips_can_OFFICIAL_VALIDATED.yaml
+    official_log: chips_can/02_chips_can_OFFICIAL_VALIDATED_RUN.log
+    completed_state: chips_can/02_chips_can_completed_objects_after_validated_run.json
+    runtime_cache_yaml: src/panda_ws/panda_controller/config/demo_candidate_cache/demo_scene_02_chips_can_golden.yaml
+    demo_profile: src/panda_ws/panda_controller/config/demo_profiles/demo_scene_02_chips_can.yaml
+    place_slot_index: 1
+    preferred_slot: slot_2
+
+  sugar_box:
+    order: 3
+    status: validated_pick_place
+    official_yaml: sugar_box/03_sugar_box_OFFICIAL_VALIDATED.yaml
+    official_log: sugar_box/03_sugar_box_OFFICIAL_VALIDATED_RUN.log
+    completed_state: sugar_box/03_sugar_box_completed_objects_after_validated_run.json
+    runtime_cache_yaml: src/panda_ws/panda_controller/config/demo_candidate_cache/demo_scene_02_sugar_box_golden.yaml
+    demo_profile: src/panda_ws/panda_controller/config/demo_profiles/demo_scene_02_sugar_box.yaml
+    place_slot_index: 2
+    preferred_slot: slot_3
+
+  mustard_bottle:
+    order: 4
+    status: validated_pick_place_pipeline
+    official_yaml: mustard_bottle/04_mustard_bottle_OFFICIAL_VALIDATED.yaml
+    official_log: mustard_bottle/04_mustard_bottle_OFFICIAL_VALIDATED_RUN.log
+    completed_state: mustard_bottle/04_mustard_bottle_completed_objects_after_validated_run.json
+    runtime_cache_yaml: src/panda_ws/panda_controller/config/demo_candidate_cache/demo_scene_02_mustard_bottle_golden.yaml
+    demo_profile: src/panda_ws/panda_controller/config/demo_profiles/demo_scene_02_mustard_bottle.yaml
+    place_slot_index: 3
+    preferred_slot: slot_4
+    notes: gazebo_post_place_verify puede fallar; release fallback 0.3284m
+
+scene_spawn:
+  yaml: src/panda_ws/panda_controller/config/demo_scenes/demo_scene_02.yaml
+
+clear_table_profile:
+  yaml: src/panda_ws/panda_controller/config/demo_profiles/demo_scene_02_clear_table.yaml

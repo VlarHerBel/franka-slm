@@ -1,0 +1,25 @@
+scene_id: demo_scene_01_3obj_nogolden
+description: "demo_scene_01_3obj sin golden fast execute"
+
+pick_order:
+  - cracker_box
+  - chips_can
+  - sugar_box
+
+objects:
+  cracker_box:
+    role: target_first
+    pose: {x: 0.470, y: 0.132, yaw: -0.6275}
+    preferred_slot: 0
+  chips_can:
+    role: obstacle_then_target
+    pose: {x: 0.576, y: -0.014, yaw: -1.7533}
+    preferred_slot: 1
+    seed: 1002
+  sugar_box:
+    role: obstacle_then_target
+    pose: {x: 0.430, y: -0.145, yaw: 0.8500}
+    preferred_slot: 2
+
+place_policy:
+  slot_mode: ordered_near_to_far

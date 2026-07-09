@@ -1,0 +1,54 @@
+profile_id: demo_scene_02_cracker_box
+scene_id: demo_scene_02
+target_label: cracker_box
+layout_version: v3_clear_table_transport
+golden_candidate_path: demo_candidate_cache/demo_scene_02_cracker_box_golden.yaml
+golden_execution_candidate_path: demo_candidate_cache/demo_scene_02_cracker_box_slot_0_full_execution_golden.yaml
+
+parameters:
+  execution_mode: pick_place
+  execution_cycle_mode: snapshot_execute_home
+  plan_before_prelude: true
+  plan_before_prelude_skip_workspace_prelude: false
+  enable_safe_pregrasp_stage: false
+  verify_gripper_gap_axis_after_pregrasp: true
+  gripper_axis_correction_backend: joint7_direct
+  enable_gripper_axis_in_place_correction: true
+  demo_authoritative_scene: true
+  clear_table_manual_step: true
+  scene_id: demo_scene_02
+  place_slot_index: 0
+  demo_persist_completed_objects: true
+  demo_completed_state_file: /tmp/tfg_demo_completed_objects.json
+  execute_once: true
+  return_home_after_place: true
+  return_home_after_execution: true
+  paired_grid_search_mode: prioritized_or_cached
+  paired_grid_max_candidates_runtime: 36
+  paired_grid_max_runtime_sec: 120.0
+  paired_grid_accept_first_valid: true
+  paired_grid_enable_full_640_debug: false
+  paired_joint7_offline_fast_mode: true
+  paired_joint7_offline_micro_probe_rad: 0.04
+  paired_joint7_offline_max_jump_rad: 1.20
+  paired_joint7_offline_fine_steps: 3
+  demo_allow_collision_off_final_descend_for_cracker: auto
+  demo_cracker_max_collision_off_descend_m: 0.14
+  demo_cracker_collision_off_fraction_min: 0.98
+  demo_cracker_collision_off_max_xy_deviation_m: 0.003
+  demo_cracker_collision_off_min_obstacle_clearance_m: 0.025
+  demo_cached_candidates_auto_save_on_accept: true
+  use_golden_execution_candidate: true
+  require_golden_execution_candidate: true
+  golden_execution_record: false
+  candidate_benchmark_mode: false
+  candidate_benchmark_target_label: cracker_box
+  candidate_benchmark_scene_id: demo_scene_02
+  candidate_benchmark_slot_index: 0
+  candidate_benchmark_export_csv: true
+  candidate_benchmark_top_k: 3
+  candidate_benchmark_validate_repetitions: 3
+  candidate_benchmark_record_golden: true
+  candidate_replay_top_k: 0
+  candidate_validate_best: false
+  candidate_validate_repetitions: 3

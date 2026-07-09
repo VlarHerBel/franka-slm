@@ -1,0 +1,222 @@
+# Dimensiones alineadas con collision en model.sdf de gazebo_ycb (aprox. AABB en suelo).
+# spawn_height_m: mitad de altura con contacto en z=0 del link; spawn_z_offset_m corrige mallas.
+# visual_offset_* y visual_yaw_offset_rad: corrigen el desfase entre frame del link y visual/collision.
+# footprint_width_m/footprint_length_m: huella para OBB/colocación cuando no coincide con width/length.
+# allow_lying: false evita pitch~90° (objetos que ruedan, flotan o desajustan etiquetas).
+# enabled: false excluye la clase del dataset final y la renumera automáticamente.
+classes:
+  - name: cracker_box
+    class_id: 0
+    model_name: cracker_box
+    width_m: 0.060
+    length_m: 0.158
+    height_m: 0.210
+    spawn_height_m: 0.105
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.060
+    footprint_length_m: 0.158
+    allow_lying: false
+
+  - name: sugar_box
+    class_id: 1
+    model_name: sugar_box
+    width_m: 0.038
+    length_m: 0.089
+    height_m: 0.175
+    spawn_height_m: 0.0875
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.038
+    footprint_length_m: 0.089
+    allow_lying: false
+
+  - name: mustard_bottle
+    class_id: 2
+    model_name: mustard_bottle
+    width_m: 0.058
+    length_m: 0.095
+    height_m: 0.190
+    spawn_height_m: 0.095
+    spawn_z_offset_m: 0.00
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.106
+    footprint_length_m: 0.121
+    allow_lying: false
+
+  - name: chips_can
+    class_id: 3
+    model_name: chips_can
+    width_m: 0.075
+    length_m: 0.075
+    height_m: 0.250
+    spawn_height_m: 0.125
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.075
+    footprint_length_m: 0.075
+    allow_lying: false
+
+  - name: tomato_soup_can
+    class_id: 4
+    model_name: tomato_soup_can
+    width_m: 0.066
+    length_m: 0.066
+    height_m: 0.101
+    spawn_height_m: 0.0505
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.066
+    footprint_length_m: 0.066
+    allow_lying: false
+
+  # --- Más variedad de color / forma (mismos modelos en gazebo_ycb/models) ---
+  - name: windex_bottle
+    class_id: 5
+    model_name: windex_bottle
+    enabled: false
+    width_m: 0.080
+    length_m: 0.105
+    height_m: 0.270
+    spawn_height_m: 0.135
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.088
+    footprint_length_m: 0.116
+    allow_lying: false
+
+  - name: bleach_cleanser
+    class_id: 6
+    model_name: bleach_cleanser
+    width_m: 0.098
+    length_m: 0.065
+    height_m: 0.250
+    spawn_height_m: 0.125
+    spawn_z_offset_m: 0.000
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.102
+    footprint_length_m: 0.067
+    allow_lying: false
+
+  - name: apple
+    class_id: 7
+    model_name: apple
+    width_m: 0.082
+    length_m: 0.082
+    height_m: 0.085
+    spawn_height_m: 0.0425
+    spawn_z_offset_m: 0.00
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.080
+    footprint_length_m: 0.080
+    allow_lying: false
+
+  - name: banana
+    class_id: 8
+    model_name: banana
+    width_m: 0.045
+    length_m: 0.195
+    height_m: 0.045
+    spawn_height_m: 0.0225
+    spawn_z_offset_m: 0.000
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.208
+    footprint_length_m: 0.080
+    allow_lying: false
+
+  - name: tuna_fish_can
+    class_id: 9
+    model_name: tuna_fish_can
+    width_m: 0.085
+    length_m: 0.085
+    height_m: 0.033
+    spawn_height_m: 0.0165
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.085
+    footprint_length_m: 0.085
+    allow_lying: false
+
+  - name: potted_meat_can
+    class_id: 10
+    model_name: potted_meat_can
+    width_m: 0.050
+    length_m: 0.097
+    height_m: 0.082
+    spawn_height_m: 0.041
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.050
+    footprint_length_m: 0.097
+    allow_lying: false
+
+  - name: gelatin_box
+    class_id: 11
+    model_name: gelatin_box
+    width_m: 0.073
+    length_m: 0.085
+    height_m: 0.028
+    spawn_height_m: 0.014
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.073
+    footprint_length_m: 0.085
+    allow_lying: false
+
+  - name: pudding_box
+    class_id: 12
+    model_name: pudding_box
+    width_m: 0.110
+    length_m: 0.089
+    height_m: 0.035
+    spawn_height_m: 0.0175
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.110
+    footprint_length_m: 0.089
+    allow_lying: false
+
+  - name: master_chef_can
+    class_id: 13
+    model_name: master_chef_can
+    width_m: 0.102
+    length_m: 0.102
+    height_m: 0.139
+    spawn_height_m: 0.0695
+    visual_offset_x_m: 0.0
+    visual_offset_y_m: 0.0
+    visual_offset_z_m: 0.0
+    visual_yaw_offset_rad: 0.0
+    footprint_width_m: 0.102
+    footprint_length_m: 0.102
+    allow_lying: false

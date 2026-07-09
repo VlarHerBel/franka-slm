@@ -1,0 +1,38 @@
+cracker_box:
+  enabled: true
+  slot_index: 0
+  yaw_variants_deg: [0, 180, -10, -5, 5, 10]
+  pregrasp_tcp_z_values: [0.555, 0.575, 0.595, 0.620]
+  depth_from_top_values: [0.025, 0.030, 0.033, 0.038]
+  ik_seeds:
+    - home
+    - pick_workspace_ready
+    - object_safe_above
+    - joint7_near_zero
+    - current_tcp_yaw
+  penalties:
+    unwind: 8.0
+    obstacle_disturbed: 5.0
+    fallback: 4.0
+    wrist_twist: 3.0
+    joint_distance_to_hub: 2.0
+    joint7_delta: 2.0
+    segments: 1.0
+    carry_front_high: 6.0
+    transport_fallback: 5.0
+    place_fallback: 5.0
+
+chips_can:
+  enabled: false
+
+sugar_box:
+  enabled: false
+
+mustard_bottle:
+  enabled: false
+
+bleach_cleanser:
+  enabled: false
+
+gelatin_box:
+  enabled: false

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pick &amp; Place · Asistente SLM</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css?v=6" />
+  </head>
+  <body>
+    <section id="landing" class="landing">
+      <div class="landing-bg"></div>
+      <img
+        class="landing-hero-img"
+        src="/assets/franka-emika-hero.png"
+        alt=""
+        aria-hidden="true"
+        decoding="async"
+      />
+      <div class="landing-overlay"></div>
+      <div class="landing-top">
+        <span>Pick &amp; Place · TFG</span>
+        <span>Franka Emika Panda</span>
+      </div>
+      <div class="landing-center">
+        <div class="landing-headline">
+          <p class="landing-sub fade-up-1">haz que lo</p>
+          <h1 class="landing-title landing-title-hero fade-up-2">Extraordinario</h1>
+          <p class="landing-sub fade-up-3">se vuelva</p>
+          <h2 class="landing-title landing-title-secondary fade-up-4">Cotidiano</h2>
+        </div>
+      </div>
+      <div class="landing-cta fade-up-4 pulse-text">
+        <span class="line"></span>
+        <span id="landing-hint">Pulsa Enter o haz click para comenzar</span>
+        <span class="line"></span>
+      </div>
+    </section>
+
+    <section id="chat" class="chat hidden">
+      <header class="chat-header">
+        <button id="back-btn" class="ghost-btn">← Inicio</button>
+        <span class="header-title">Pick &amp; Place</span>
+        <div class="status-pill">
+          <span id="status-dot" class="status-dot"></span>
+          <span id="status-label">Conectando…</span>
+        </div>
+      </header>
+      <main class="chat-main">
+        <div id="empty-hint" class="empty-hint">
+          Escribe una instrucción en lenguaje natural.
+        </div>
+        <div id="messages" class="messages"></div>
+        <div id="bottom-anchor"></div>
+      </main>
+      <div class="composer">
+        <div class="composer-inner">
+          <textarea
+            id="input"
+            class="composer-input"
+            rows="1"
+            placeholder="Recoge la caja de galletas del primer cajón..."
+            disabled
+          ></textarea>
+          <button id="send-btn" class="send-btn" disabled>Enviar →</button>
+        </div>
+      </div>
+    </section>
+
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,382 @@
+"""Lectura de pose real en Gazebo tras spawn y actualización de RuntimeScene GT."""
+
+from __future__ import annotations
+
+import math
+import time
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import rclpy
+import tf_transformations
+from rclpy.node import Node
+from tf2_msgs.msg import TFMessage
+
+from panda_vision.grasp.gazebo_gt_top_face import Pose6, update_world_pose_cache
+from panda_vision.spawn.runtime_scene_gt import (
+    RuntimeSceneGtClient,
+    make_gt_object_entry,
+)
+from panda_vision.spawn.runtime_scene_gt_geometry import (
+    get_known_box_gt_spec,
+    is_known_spawn_geometry_box_label,
+    semantic_center_from_gazebo_model_origin,
+)
+
+EntityPoseSample = Tuple[
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+    float,
+]
+
+
+@dataclass(frozen=True)
+class PoseStabilityResult:
+    stable: bool
+    samples: int
+    max_delta_xy_m: float
+    max_delta_z_m: float
+    max_delta_yaw_deg: float
+    final_pose: Optional[EntityPoseSample]
+
+
+@dataclass(frozen=True)
+class SpawnPoseReadbackParams:
+    update_runtime_scene_from_actual_gazebo_pose: bool = True
+    post_spawn_settle_sec: float = 0.8
+    pose_stability_timeout_sec: float = 2.0
+    pose_stability_sample_count: int = 5
+    pose_stability_sample_period_sec: float = 0.15
+    pose_stability_xy_threshold_m: float = 0.002
+    pose_stability_z_threshold_m: float = 0.001
+    pose_stability_yaw_threshold_deg: float = 0.5
+    reject_topdown_if_tilted: bool = True
+    max_upright_roll_pitch_deg: float = 3.0
+    world_frame: str = "world"
+
+
+def _normalize_entity_keys(entity_name: str) -> List[str]:
+    short = entity_name.split("::")[-1].strip()
+    keys = [entity_name.strip(), short]
+    if short and not short.startswith("model::"):
+        keys.append(f"model::{short}")
+    out: List[str] = []
+    seen = set()
+    for k in keys:
+        if k and k not in seen:
+            seen.add(k)
+            out.append(k)
+    return out
+
+
+def pose6_to_entity_sample(pose6: Pose6) -> EntityPoseSample:
+    x, y, z, roll, pitch, yaw = pose6
+    qx, qy, qz, qw = tf_transformations.quaternion_from_euler(
+        roll, pitch, yaw, axes="sxyz"
+    )
+    return (
+        float(x),
+        float(y),
+        float(z),
+        float(qx),
+        float(qy),
+        float(qz),
+        float(qw),
+        float(roll),
+        float(pitch),
+        float(yaw),
+    )
+
+
+def max_tilt_deg_from_sample(sample: EntityPoseSample) -> float:
+    _x, _y, _z, _qx, _qy, _qz, _qw, roll, pitch, _yaw = sample
+    return max(abs(math.degrees(float(roll))), abs(math.degrees(float(pitch))))
+
+
+def lookup_entity_pose(
+    cache: Dict[str, Pose6], entity_name: str
+) -> Optional[EntityPoseSample]:
+    for key in _normalize_entity_keys(entity_name):
+        if key in cache:
+            return pose6_to_entity_sample(cache[key])
+    return None
+
+
+def sample_world_poses_once(
+    node: Node,
+    *,
+    world_pose_topic: str,
+    world_frame: str,
+    collect_sec: float,
+) -> Dict[str, Pose6]:
+    cache: Dict[str, Pose6] = {}
+
+    def _cb(msg: TFMessage) -> None:
+        update_world_pose_cache(msg, cache, world_frame=world_frame)
+
+    sub = node.create_subscription(TFMessage, world_pose_topic, _cb, 10)
+    t_end = time.monotonic() + max(0.05, float(collect_sec))
+    try:
+        while time.monotonic() < t_end and rclpy.ok():
+            rclpy.spin_once(node, timeout_sec=0.05)
+    finally:
+        node.destroy_subscription(sub)
+    return cache
+
+
+def wait_for_entity_pose_stable(
+    node: Node,
+    *,
+    entity_name: str,
+    world_pose_topic: str,
+    world_frame: str = "world",
+    timeout_sec: float = 2.0,
+    sample_count: int = 5,
+    sample_period_sec: float = 0.15,
+    xy_threshold_m: float = 0.002,
+    z_threshold_m: float = 0.001,
+    yaw_threshold_deg: float = 0.5,
+    logger: Any = None,
+) -> PoseStabilityResult:
+    """Muestrea pose/info hasta estabilidad o timeout."""
+    need = max(2, int(sample_count))
+    period = max(0.05, float(sample_period_sec))
+    collect_sec = max(period, 0.12)
+    deadline = time.monotonic() + max(collect_sec, float(timeout_sec))
+    history: List[EntityPoseSample] = []
+
+    while time.monotonic() < deadline and rclpy.ok():
+        cache = sample_world_poses_once(
+            node,
+            world_pose_topic=world_pose_topic,
+            world_frame=world_frame,
+            collect_sec=collect_sec,
+        )
+        pose = lookup_entity_pose(cache, entity_name)
+        if pose is not None:
+            history.append(pose)
+            if len(history) >= need:
+                window = history[-need:]
+                max_dxy = 0.0
+                max_dz = 0.0
+                max_dyaw = 0.0
+                for i in range(1, len(window)):
+                    a, b = window[i - 1], window[i]
+                    max_dxy = max(
+                        max_dxy,
+                        math.hypot(b[0] - a[0], b[1] - a[1]),
+                    )
+                    max_dz = max(max_dz, abs(b[2] - a[2]))
+                    dy = math.degrees(
+                        math.atan2(
+                            math.sin(b[9] - a[9]), math.cos(b[9] - a[9])
+                        )
+                    )
+                    max_dyaw = max(max_dyaw, abs(dy))
+                stable = (
+                    max_dxy <= float(xy_threshold_m)
+                    and max_dz <= float(z_threshold_m)
+                    and max_dyaw <= float(yaw_threshold_deg)
+                )
+                if stable:
+                    if logger is not None:
+                        try:
+                            logger.info(
+                                "[SPAWN_POSE_STABLE] entity=%s stable=true samples=%d "
+                                "max_delta_xy=%.4f max_delta_z=%.4f max_delta_yaw_deg=%.3f"
+                                % (
+                                    entity_name,
+                                    len(window),
+                                    max_dxy,
+                                    max_dz,
+                                    max_dyaw,
+                                )
+                            )
+                        except Exception:
+                            pass
+                    return PoseStabilityResult(
+                        stable=True,
+                        samples=len(window),
+                        max_delta_xy_m=max_dxy,
+                        max_delta_z_m=max_dz,
+                        max_delta_yaw_deg=max_dyaw,
+                        final_pose=window[-1],
+                    )
+        time.sleep(period)
+
+    final = history[-1] if history else None
+    if logger is not None:
+        try:
+            logger.info(
+                "[SPAWN_POSE_STABLE] entity=%s stable=false samples=%d "
+                "max_delta_xy=n/a (timeout)"
+                % (entity_name, len(history))
+            )
+        except Exception:
+            pass
+    return PoseStabilityResult(
+        stable=False,
+        samples=len(history),
+        max_delta_xy_m=float("inf"),
+        max_delta_z_m=float("inf"),
+        max_delta_yaw_deg=float("inf"),
+        final_pose=final,
+    )
+
+
+def log_spawn_requested_pose(
+    logger: Any,
+    *,
+    label: str,
+    entity_name: str,
+    position_xyz: Tuple[float, float, float],
+    yaw_rad: float,
+) -> None:
+    if logger is None:
+        return
+    try:
+        logger.info(
+            "[SPAWN_REQUESTED_POSE] label=%s entity=%s "
+            "requested_position=(%.4f,%.4f,%.4f) requested_yaw=%.3fdeg"
+            % (
+                label,
+                entity_name,
+                position_xyz[0],
+                position_xyz[1],
+                position_xyz[2],
+                math.degrees(yaw_rad),
+            )
+        )
+    except Exception:
+        pass
+
+
+def log_spawn_actual_pose(
+    logger: Any,
+    *,
+    label: str,
+    entity_name: str,
+    requested_position: Tuple[float, float, float],
+    requested_yaw_rad: float,
+    actual: EntityPoseSample,
+) -> None:
+    if logger is None:
+        return
+    ax, ay, az = actual[0], actual[1], actual[2]
+    rx, ry, rz = requested_position
+    delta_xy = math.hypot(ax - rx, ay - ry)
+    delta_z = abs(az - rz)
+    delta_yaw = math.degrees(
+        math.atan2(
+            math.sin(actual[9] - requested_yaw_rad),
+            math.cos(actual[9] - requested_yaw_rad),
+        )
+    )
+    try:
+        logger.info(
+            "[SPAWN_ACTUAL_POSE] label=%s entity=%s "
+            "actual_position=(%.4f,%.4f,%.4f) actual_rpy=(%.3f,%.3f,%.3f)deg "
+            "delta_xy_m=%.4f delta_z_m=%.4f delta_yaw_deg=%.3f"
+            % (
+                label,
+                entity_name,
+                ax,
+                ay,
+                az,
+                math.degrees(actual[6]),
+                math.degrees(actual[7]),
+                math.degrees(actual[8]),
+                delta_xy,
+                delta_z,
+                delta_yaw,
+            )
+        )
+    except Exception:
+        pass
+
+
+def log_runtime_scene_gt_update_from_gazebo(
+    logger: Any,
+    *,
+    label: str,
+    entity_name: str,
+    semantic_center: Tuple[float, float, float],
+    top_face_center: Tuple[float, float, float],
+    yaw_real: float,
+    tilt_deg: float,
+) -> None:
+    if logger is None:
+        return
+    try:
+        logger.info(
+            "[RUNTIME_SCENE_GT_UPDATE_FROM_GAZEBO] label=%s entity=%s "
+            "semantic_center=(%.4f,%.4f,%.4f) top_face_center=(%.4f,%.4f,%.4f) "
+            "yaw_real=%.3fdeg tilt_deg=%.3f "
+            "source=actual_gazebo_pose_after_settle"
+            % (
+                label,
+                entity_name,
+                semantic_center[0],
+                semantic_center[1],
+                semantic_center[2],
+                top_face_center[0],
+                top_face_center[1],
+                top_face_center[2],
+                math.degrees(yaw_real),
+                tilt_deg,
+            )
+        )
+    except Exception:
+        pass
+
+
+def build_gt_entry_from_actual_gazebo_pose(
+    *,
+    entity_name: str,
+    label: str,
+    actual: EntityPoseSample,
+    width_m: float,
+    length_m: float,
+    height_m: float,
+    spawn_seed: Optional[int] = None,
+    role: str = "unknown",
+    logger: Any = None,
+) -> Optional[Dict[str, Any]]:
+    """GT desde pose real de Gazebo (origen modelo + orientación)."""
+    lb = str(label).strip().lower()
+    if not is_known_spawn_geometry_box_label(lb):
+        return make_gt_object_entry(
+            entity_name=entity_name,
+            label=lb,
+            x=float(actual[0]),
+            y=float(actual[1]),
+            z=float(actual[2]),
+            roll=float(actual[6]),
+            pitch=float(actual[7]),
+            yaw=float(actual[8]),
+            qx=float(actual[3]),
+            qy=float(actual[4]),
+            qz=float(actual[5]),
+            qw=float(actual[6] if False else actual[6]),  # fix below
+            ...
+        )
+```
+
+I made an error in the draft - qw is actual[6] wrong index. EntityPoseSample indices:
+0-2 x,y,z
+3-6 qx,qy,qz,qw
+7-9 roll,pitch,yaw
+
+Let me fix build_gt_entry_from_actual_gazebo_pose properly and add semantic_center_from_gazebo_model_origin to runtime_scene_gt_geometry.
+
+
+StrReplace

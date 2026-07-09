@@ -1,0 +1,27 @@
+scene_id: deposit_full_1table
+description: "4 objetos en cajón depósito lleno + cracker_box en mesa (test SLM caja llena)"
+
+pick_order:
+  - cracker_box
+
+objects:
+  cracker_box:
+    role: target_first
+    pose:
+      x: 0.520
+      y: 0.000
+      yaw: 0.0
+    preferred_slot: 0
+
+initial_deposits:
+  - label: chips_can
+    slot_index: 0
+  - label: sugar_box
+    slot_index: 1
+  - label: mustard_bottle
+    slot_index: 2
+  - label: gelatin_box
+    slot_index: 3
+
+place_policy:
+  slot_mode: ordered_near_to_far

@@ -1,0 +1,27 @@
+Model,Test_ID,Latency (s),Tokens/Sec,Valid JSON,Output
+phi3,0,8.163,8.45,True,"{
+    ""plan"": [
+        {
+            ""action"": ""PICK"",
+            ""object"": ""blue_cube""
+        },..."
+phi3,1,4.205,14.74,True,"{
+    ""plan"": [
+        {
+            ""action"": ""PUSH"",
+            ""object"": ""screw""
+        },
+   ..."
+phi3,2,4.881,14.55,True,"{
+    ""plan"": [
+        {
+            ""action"": ""PICK"",
+            ""object"": ""red_block""
+        },..."
+gemma2:2b,0,5.28,6.25,True,"{""plan"": [{""action"": ""PICK"", ""object"": ""blue_cube""}, {""action"": ""PLACE"", ""target"": ""table""}]}..."
+gemma2:2b,1,2.916,10.97,True,"{""plan"": [{""action"": ""PUSH"", ""object"": ""screw""}, {""action"": ""GRASP"", ""object"": ""nut""}]}..."
+gemma2:2b,2,5.292,11.53,True,"{""plan"": [{""action"": ""PICK"", ""object"": ""green_block""}, {""action"": ""PLACE"", ""object"": ""position B""}, ..."
+qwen2.5:1.5b,0,3.626,10.48,True,"{""plan"": [{""action"": ""PICK"", ""object"": ""blue_cube""}, {""action"": ""PLACE"", ""object"": ""blue_cube"", ""tar..."
+qwen2.5:1.5b,1,1.686,18.97,True,"{""plan"": [{""action"": ""PUSH"", ""object"": ""screw""}, {""action"": ""PICK"", ""object"": ""nut""}]}..."
+qwen2.5:1.5b,2,3.011,19.93,True,"{""plan"": [{""action"": ""PICK"", ""object"": ""red_block""},
+          {""action"": ""PLACE"", ""position"": ""A""},..."

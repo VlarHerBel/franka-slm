@@ -1,0 +1,35 @@
+scene_id: deposit_02_cracker_chips
+description: "demo_scene_02: cracker+chips precargados (slots 0-1); sugar+mustard en mesa"
+
+pick_order:
+  - sugar_box
+  - mustard_bottle
+
+objects:
+  sugar_box:
+    role: target_first
+    pose:
+      x: 0.630
+      y: -0.175
+      yaw: -3.0159
+    preferred_slot: 2
+
+  mustard_bottle:
+    role: obstacle_then_target
+    pose:
+      x: 0.662
+      y: 0.084
+      yaw: 1.6392
+    preferred_slot: 3
+
+initial_deposits:
+  - label: cracker_box
+    slot_index: 0
+    yaw: 2.9155
+  - label: chips_can
+    slot_index: 1
+    yaw: 1.3953
+
+place_policy:
+  slot_mode: ordered_near_to_far
+  use_food_safe_dynamic_release_z: true

@@ -1,0 +1,443 @@
+golden_candidate_schema_version: 2
+type: full_execution_candidate
+scene_id: demo_scene_02
+layout_version: v3_clear_table_transport
+target_label: cracker_box
+status: validated_full_execution
+scene_signature:
+  scene_id: demo_scene_02
+  target_label: cracker_box
+  target_entity_name: runtime_ycb_cracker_box_0_962211
+  target_center_xyz:
+  - 0.455
+  - 0.115
+  - 0.4699999000658272
+  target_yaw_rad: 2.9155
+  target_top_z: 0.4699999000658272
+  target_dims_lwh:
+  - 0.158
+  - 0.06
+  - 0.21
+  obstacles:
+  - label: chips_can
+    entity_name: runtime_ycb_chips_can_1_962211
+    center_xyz:
+    - 0.52
+    - -0.095
+    - 0.38499915365793197
+    yaw_rad: null
+    dims: null
+  - label: mustard_bottle
+    entity_name: runtime_ycb_mustard_bottle_3_962211
+    center_xyz:
+    - 0.660003358260948
+    - 0.0599999423710311
+    - 0.25938635775301633
+    yaw_rad: null
+    dims: null
+  - label: sugar_box
+    entity_name: runtime_ycb_sugar_box_2_962211
+    center_xyz:
+    - 0.63
+    - -0.175
+    - 0.3474999014321165
+    yaw_rad: null
+    dims: null
+  place_slot_index: 0
+  place_slot_xyz: null
+  completed_labels: []
+  compatibility_tolerances:
+    center_xy_tol_m: 0.01
+    yaw_tol_deg: 3.0
+    top_z_tol_m: 0.01
+    obstacle_pose_tol_m: 0.02
+preconditions:
+  robot_start: HOME
+  gripper_open: true
+  no_object_attached: true
+  target_present: true
+  target_not_completed: true
+  target_collision_before_approach: true
+  runtime_scene_gt_available: true
+  place_slot_free: true
+geometric_candidate:
+  candidate_idx: 0
+  commanded_tcp_yaw_rad: 1.3447036732049806
+  pregrasp_tcp:
+  - 0.455
+  - 0.115
+  - 0.5619999000658272
+  grasp_tcp: []
+  lift_tcp: []
+  depth_from_top_m: 0.033
+  ik_seed: pick_workspace_ready
+  prevalidation_source: demo_collision_off_final_descend
+  cartesian_descend_fraction: 1.0
+kinematic_solution:
+  pick_workspace_ready_js:
+  - -0.002951048783656259
+  - 0.15102548108776515
+  - 0.04702507161083276
+  - -1.27693317168049
+  - -0.013220815045937414
+  - 1.4508821931445055
+  - 0.7729729229091011
+  pregrasp_js:
+  - 0.4550818673408287
+  - -0.24110912312911162
+  - -0.17321940197152885
+  - -1.7219860715990623
+  - -0.04134037209902143
+  - 1.4845070139098044
+  - -0.7272401951717737
+  aligned_pregrasp_js:
+  - 0.4550818673408287
+  - -0.24110912312911162
+  - -0.17321940197152885
+  - -1.7219860715990623
+  - -0.04134037209902143
+  - 1.4845070139098044
+  - -0.7272401951717737
+  grasp_js:
+  - 0.4500097252759662
+  - -0.29359480242768005
+  - -0.17722153012891742
+  - -2.0849113623215554
+  - -0.052453887317537105
+  - 1.79535987950636
+  - -0.27016045100465613
+  post_lift_js:
+  - 0.4556330489384439
+  - -0.22905280581117807
+  - -0.17384759196847216
+  - -1.6792573965785063
+  - -0.0395941522836412
+  - 1.4536259614020912
+  - -0.28048193537824023
+  transport_entry_js:
+  - 0.49456017066417035
+  - -0.3643380066724188
+  - -0.15743849267227092
+  - -1.737241915132989
+  - -0.05696088333668941
+  - 1.377334579207384
+  - -0.44905515533177914
+  place_release_js:
+  - -2.897297117103263
+  - -0.5021868274485886
+  - -0.4088867176982175
+  - -2.4836655748983563
+  - -0.19893478528525066
+  - 1.899864604974338
+  - 2.3376541785527682
+  return_home_js:
+  - -0.006984797627575035
+  - -0.7783932654327766
+  - -0.05768212165560002
+  - -2.2571930076361655
+  - -0.03870238095118645
+  - 1.5150996179151048
+  - 0.6930850168199518
+  selected_local_exit: vertical_raise_then_rear_retreat
+execution_route:
+  phases_recorded: 16
+transport_route:
+  selected_transport_entry: vertical_raise_then_rear_retreat
+  route:
+  - carry_mid_high
+  - turn_back_extended_aligned
+  - box_front_high
+  - box_high
+  backend: direct_action
+  first_hub: carry_mid_high
+place_policy:
+  slot_index: 0
+  release_tcp_z: 0.3292383069992066
+  deposit_xy:
+  - -0.37
+  - 0.08
+phases:
+- name: home_to_pick_workspace_ready
+  type: joint_trajectory
+  joint_names:
+  - panda_joint1
+  - panda_joint2
+  - panda_joint3
+  - panda_joint4
+  - panda_joint5
+  - panda_joint6
+  - panda_joint7
+  goal_waypoint: pick_workspace_ready
+  points:
+  - positions:
+    - -0.00282136804817618
+    - 0.16468079755461604
+    - 0.048581227202378605
+    - -1.2623226256078592
+    - -0.012845199905666927
+    - 1.4497137109706164
+    - 0.7735593612469361
+    time_from_start_s: 5.0
+  duration_s: 5.0
+  goal_js:
+  - -0.002951048783656259
+  - 0.15102548108776515
+  - 0.04702507161083276
+  - -1.27693317168049
+  - -0.013220815045937414
+  - 1.4508821931445055
+  - 0.7729729229091011
+- name: approach_to_pregrasp
+  type: joint_trajectory
+  joint_names:
+  - panda_joint1
+  - panda_joint2
+  - panda_joint3
+  - panda_joint4
+  - panda_joint5
+  - panda_joint6
+  - panda_joint7
+  tcp_goal:
+  - 0.455
+  - 0.115
+  - 0.5619999000658272
+  goal_js: &id001
+  - 0.4550818673408287
+  - -0.24110912312911162
+  - -0.17321940197152885
+  - -1.7219860715990623
+  - -0.04134037209902143
+  - 1.4845070139098044
+  - -0.7272401951717737
+  end_js: *id001
+  duration_s: 3.159800333000021
+  start_js:
+  - -0.002827476177702343
+  - 0.16403761457624236
+  - 0.048507930271288476
+  - -1.2630108011333014
+  - -0.012862891862176666
+  - 1.449768747984619
+  - 0.7735317392464914
+- name: gripper_axis_alignment
+  type: joint_adjustment
+  joint7_target: -0.27712407786806503
+  expected_gap_axis_error_deg: 0.46369556195689027
+  result: OK
+  end_js:
+  - 0.4550338219593551
+  - -0.24808633837767527
+  - -0.1729097534021173
+  - -1.7462399581032986
+  - -0.04235965946565807
+  - 1.5017681905553089
+  - -0.27712407786806503
+- name: open_gripper_at_pregrasp
+  type: gripper_command
+  open_joint: 0.0399
+  command: open
+  duration_s: 2.0
+  result: OK
+- name: cartesian_descend_to_grasp
+  type: cartesian_or_joint_trajectory
+  start_tcp:
+  - 0.455
+  - 0.115
+  - 0.5619999000658272
+  goal_tcp:
+  - 0.455
+  - 0.115
+  - 0.5619999000658272
+  depth_from_top_m: 0.033
+  fraction: 1.0
+  duration_s: 3.0
+- name: close_gripper
+  type: gripper_command
+  open_joint: 0.0399
+  close_joint: 0.027
+  expected_width: 0.06
+  command: close
+  result: OK
+- name: attach_and_verify
+  type: attach
+  expected_contact_policy: strict
+  result: OK
+- name: cartesian_lift
+  type: trajectory
+  start_tcp:
+  - 0.455
+  - 0.115
+  - 0.5619999000658272
+  goal_tcp:
+  - 0.455
+  - 0.115
+  - 0.5869999000658273
+  duration_s: 2.5
+- name: post_lift_local_escape
+  type: trajectory
+  selected_mode: vertical_raise_then_rear_retreat
+  duration_s: 4.0
+  selected_local_exit: vertical_raise_then_rear_retreat
+  result: OK
+  start_tcp:
+  - 0.45543950562860575
+  - 0.11505799478712027
+  - 0.6799547556496637
+  goal_tcp:
+  - 0.39943950562860575
+  - 0.11505799478712027
+  - 0.7059547556496637
+  goal_js:
+  - 0.49432723203695095
+  - -0.36560512043001464
+  - -0.15745652379994443
+  - -1.7424932776859827
+  - -0.057110453264387115
+  - 1.3813259398812658
+  - -0.4482915679924632
+- name: transport_entry_to_safe_hub
+  type: direct_action_or_joint_trajectory
+  target_waypoint: carry_mid_high
+  duration_s: 6.0
+  selected_local_exit: vertical_raise_then_rear_retreat
+  result: OK
+  goal_js:
+  - 0.49456017066417035
+  - -0.3643380066724188
+  - -0.15743849267227092
+  - -1.737241915132989
+  - -0.05696088333668941
+  - 1.377334579207384
+  - -0.44905515533177914
+- name: deterministic_transport
+  type: waypoint_sequence
+  backend: direct_action
+  sequence:
+  - carry_mid_high
+  - turn_back_extended_aligned
+  - box_front_high
+  - box_high
+  per_segment_times_s:
+  - 7.300000000000001
+  - 14.8
+  - 15.8
+  - 16.8
+  joint_waypoints:
+  - waypoint: carry_mid_high
+    joints:
+    - 0.1538690790348689
+    - -0.9992379001768518
+    - -0.041740937942416775
+    - -2.0115537391504663
+    - -0.04192646329146716
+    - 1.0133649130426015
+    - -0.675491013301395
+  - waypoint: turn_back_extended_aligned
+    joints:
+    - -2.85
+    - -0.549238
+    - -0.141741
+    - -1.811554
+    - -0.041926
+    - 1.213365
+    - 2.522
+  - waypoint: box_front_high
+    joints:
+    - -2.85
+    - -0.349238
+    - -0.141741
+    - -1.611554
+    - -0.041926
+    - 1.213365
+    - 2.522
+  - waypoint: box_high
+    joints:
+    - -2.85
+    - -0.299238
+    - -0.221741
+    - -1.611554
+    - -0.041926
+    - 1.213365
+    - 2.44
+  duration_s: 54.7
+- name: place_approach
+  type: cartesian_or_joint_trajectory
+  tcp_goal:
+  - -0.37
+  - 0.08
+  - 0.65
+  duration_s: 4.0
+  result: OK
+- name: place_release
+  type: cartesian_or_joint_trajectory
+  tcp_goal:
+  - -0.37
+  - 0.08
+  - 0.3292383069992066
+  release_tcp_z: 0.3292383069992066
+  duration_s: 3.0
+  result: OK
+  goal_js:
+  - -2.897297117103263
+  - -0.5021868274485886
+  - -0.4088867176982175
+  - -2.4836655748983563
+  - -0.19893478528525066
+  - 1.899864604974338
+  - 2.3376541785527682
+- name: open_detach
+  type: gripper_and_detach
+  command: open
+  result: OK
+- name: place_retreat
+  type: cartesian_or_joint_trajectory
+  tcp_goal:
+  - -0.37
+  - 0.08
+  - 0.65
+  duration_s: 3.0
+  result: OK
+- name: return_home
+  type: joint_trajectory
+  goal_waypoint: home
+  points:
+  - positions:
+    - -0.011715794000000074
+    - -0.7718978349995642
+    - -0.058150980000052914
+    - -2.2644176920016643
+    - -0.038607555000000675
+    - 1.5298565209997919
+    - 0.7333372529999951
+    time_from_start_s: 4.0
+  duration_s: 4.0
+  goal_js:
+  - -0.006984797627575035
+  - -0.7783932654327766
+  - -0.05768212165560002
+  - -2.2571930076361655
+  - -0.03870238095118645
+  - 1.5150996179151048
+  - 0.6930850168199518
+  result: OK
+validation:
+  result: validated_full_execution
+  obstacles_disturbed: false
+  had_grid_fallback: false
+  had_place_fallback: false
+  total_real_time_s: 69.09181915099907
+  save_validation:
+    phase_count_real: 16
+    required_phases_present: true
+    missing_phases: []
+    approach_goal_js_len: 7
+    post_lift_local_escape_present: true
+    transport_entry_present: true
+    deterministic_transport_present: true
+    place_release_present: true
+    return_home_present: true
+    result: OK
+record_metadata:
+  source: golden_execution_record
+  selected_candidate_idx: null
+  recorded_from_snapshots: true

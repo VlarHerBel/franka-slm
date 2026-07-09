@@ -1,0 +1,36 @@
+profile_id: demo_scene_02_sugar_box
+scene_id: demo_scene_02
+target_label: sugar_box
+layout_version: v3_clear_table_transport
+golden_candidate_path: demo_candidate_cache/demo_scene_02_sugar_box_golden.yaml
+
+parameters:
+  execution_mode: pick_place
+  execution_cycle_mode: snapshot_execute_home
+  plan_before_prelude: true
+  plan_before_prelude_skip_workspace_prelude: false
+  enable_safe_pregrasp_stage: false
+  verify_gripper_gap_axis_after_pregrasp: false
+  gripper_centering_verify_enabled: false
+  sugar_box_strict_top_down_dot: 0.98
+  sugar_box_strict_hand_orientation_tol_deg: 10.0
+  gripper_axis_correction_backend: joint7_direct
+  enable_gripper_axis_in_place_correction: false
+  require_gripper_axis_target_for_pick: false
+  demo_authoritative_scene: false
+  clear_table_manual_step: true
+  scene_id: demo_scene_02
+  place_slot_index: 2
+  demo_persist_completed_objects: true
+  demo_completed_state_file: /tmp/tfg_demo_completed_objects.json
+  execute_once: true
+  return_home_after_place: true
+  return_home_after_execution: true
+  use_golden_execution_candidate: false
+  require_golden_execution_candidate: false
+  paired_grid_search_mode: prioritized_or_cached
+  paired_grid_max_candidates_runtime: 36
+  paired_grid_max_runtime_sec: 120.0
+  paired_grid_accept_first_valid: true
+  sugar_box_final_descend_avoid_collisions: false
+  sugar_box_geometric_fallback_descend_fraction_threshold: 0.80

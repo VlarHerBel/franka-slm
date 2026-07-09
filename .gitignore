@@ -1,0 +1,62 @@
+# --- ROS (ROS 1 y ROS 2) ---
+build/
+devel/
+install/
+log/
+.catkin_workspace
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# --- C++ y Archivos de Compilación ---
+*.o
+*.so
+*.a
+*.db
+browse.vc.db
+*.ipch
+*.pdb
+
+# --- Modelos IA (SLM/DRL/Visión) ---
+*.pth
+*.pt
+*.onnx
+*.weights
+*.safetensors
+*.bin
+/datasets/
+/models/checkpoint-*/
+runs/
+
+# --- Logs y evidencias de experimentación (regenerables) ---
+logs/
+golden_logs/
+demo_scene*.log
+slm_eval/results/
+slm_eval/results.zip
+
+# --- Entornos Virtuales y Variables ---
+venv/
+.venv/
+env/
+.env
+
+# --- IDEs y Editores ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Sistema Operativo ---
+.DS_Store
+Thumbs.db
+
+# --- Prototipos no usados en el pipeline ROS ---
+anything/
+
+# --- Evidencias históricas de desarrollo (conservar solo golden_oficiales/) ---
+evidence/demo_scene_02/cracker_box/
+evidence/demo_scene_02/chips_can/
+evidence/demo_scene_02/sugar_box/
+evidence/demo_scene_02/mustard_bottle/

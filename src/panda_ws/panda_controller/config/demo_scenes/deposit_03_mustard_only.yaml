@@ -1,0 +1,29 @@
+scene_id: deposit_03_mustard_only
+description: "demo_scene_02: cracker+chips+sugar precargados (slots 0-2); solo mustard en mesa"
+
+pick_order:
+  - mustard_bottle
+
+objects:
+  mustard_bottle:
+    role: target_first
+    pose:
+      x: 0.662
+      y: 0.084
+      yaw: 1.6392
+    preferred_slot: 3
+
+initial_deposits:
+  - label: cracker_box
+    slot_index: 0
+    yaw: 2.9155
+  - label: chips_can
+    slot_index: 1
+    yaw: 1.3953
+  - label: sugar_box
+    slot_index: 2
+    yaw: -3.0159
+
+place_policy:
+  slot_mode: ordered_near_to_far
+  use_food_safe_dynamic_release_z: false

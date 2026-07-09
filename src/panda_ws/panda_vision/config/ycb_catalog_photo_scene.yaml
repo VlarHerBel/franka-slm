@@ -1,0 +1,55 @@
+# Escena fija para foto catálogo: 12 objetos YCB del dataset (sin tomato_soup_can).
+# Cuadrícula 4×3 sobre vision_test_table (centro 0.60,0.0; 0.72×0.48 m).
+# Posiciones validadas sin solapamiento (clearance ≥ 5 mm).
+scene_id: catalog_photo_12
+description: "12 objetos del dataset YCB OBB, organizados para foto de catálogo"
+table_surface_z_m: 0.26
+objects:
+  - label: cracker_box
+    x: 0.4000
+    y: 0.1300
+    yaw: 0.0
+  - label: chips_can
+    x: 0.5600
+    y: 0.1300
+    yaw: 0.0
+  - label: mustard_bottle
+    x: 0.7200
+    y: 0.1300
+    yaw: 0.0
+  - label: bleach_cleanser
+    x: 0.8800
+    y: 0.1300
+    yaw: 0.0
+  - label: sugar_box
+    x: 0.4000
+    y: -0.0100
+    yaw: 0.0
+  - label: potted_meat_can
+    x: 0.5600
+    y: -0.0100
+    yaw: 0.0
+  - label: master_chef_can
+    x: 0.7277
+    y: -0.0124
+    yaw: 0.0
+  - label: pudding_box
+    x: 0.8800
+    y: -0.0100
+    yaw: 0.0
+  - label: banana
+    x: 0.4000
+    y: -0.1500
+    yaw: 1.5708
+  - label: apple
+    x: 0.5600
+    y: -0.1500
+    yaw: 0.0
+  - label: tuna_fish_can
+    x: 0.7200
+    y: -0.1500
+    yaw: 0.0
+  - label: gelatin_box
+    x: 0.8800
+    y: -0.1500
+    yaw: 0.0

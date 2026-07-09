@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<robot name="panda_joint1_only" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="is_ignition" default="false" />
+  <xacro:arg name="enable_ros2_control" default="true" />
+
+  <link name="panda_link0">
+    <visual>
+      <geometry>
+        <box size="0.15 0.15 0.15"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.15 0.15 0.15"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+
+  <link name="panda_link1">
+    <visual>
+      <origin xyz="0 0 0.2" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.04" length="0.4"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.2" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.04" length="0.4"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0.2" rpy="0 0 0"/>
+      <mass value="1.0"/>
+      <inertia ixx="0.02" ixy="0.0" ixz="0.0" iyy="0.02" iyz="0.0" izz="0.005"/>
+    </inertial>
+  </link>
+  <joint name="panda_joint1" type="revolute">
+    <origin xyz="0 0 0.075" rpy="0 0 0"/>
+    <parent link="panda_link0"/>
+    <child link="panda_link1"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="0.1" friction="0.0"/>
+    <limit effort="30.0" lower="-2.9671" upper="2.9671" velocity="10.0"/>
+  </joint>
+  <xacro:include filename="$(find panda_description)/urdf/gazebo.xacro" />
+  <xacro:include filename="$(find panda_description)/urdf/ros2control.xacro" />
+</robot>

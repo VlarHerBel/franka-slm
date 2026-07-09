@@ -1,0 +1,80 @@
+profile_id: demo_scene_02_clear_table
+scene_id: demo_scene_02
+target_label: cracker_box
+layout_version: v3_clear_table_transport
+
+parameters:
+  execution_mode: clear_table
+  execution_cycle_mode: snapshot_execute_home
+  plan_before_prelude: true
+  plan_before_prelude_skip_workspace_prelude: true
+  enable_safe_pregrasp_stage: false
+  verify_gripper_gap_axis_after_pregrasp: true
+  gripper_axis_correction_backend: joint7_direct
+  enable_gripper_axis_in_place_correction: true
+  demo_authoritative_scene: true
+  clear_table_manual_step: true
+  scene_id: demo_scene_02
+  demo_scene_02_pick_order:
+    - cracker_box
+    - chips_can
+    - sugar_box
+    - mustard_bottle
+  demo_persist_completed_objects: true
+  demo_completed_state_file: /tmp/tfg_demo_completed_objects.json
+  execute_once: false
+  return_home_after_place: true
+  close_gripper_after_successful_place: true
+  post_place_min_safe_close_tcp_z_m: 0.35
+  post_place_gripper_joint_m: 0.005
+  return_home_after_execution: true
+  # Perfil ligero: goldens pre-validados offline; runtime sin grid/MoveIt pesado (coexistencia SLM)
+  execution_profile: demo
+  demo_fast_mode: true
+  demo_golden_pick_fast_execute: true
+  demo_require_full_pick_route_prevalidation: false
+  require_full_pick_route_preplanned_before_prelude: false
+  paired_grid_search_mode: prioritized_or_cached
+  paired_grid_max_candidates_runtime: 36
+  paired_grid_max_runtime_sec: 120.0
+  paired_grid_accept_first_valid: true
+  paired_joint7_offline_fast_mode: true
+  use_golden_execution_candidate: false
+  require_golden_execution_candidate: false
+  # Mustard (4º objeto) — tuning validado 2026-06-10
+  mustard_pregrasp_ik_joint_goal: false
+  mustard_demo_scene_depth_search_enabled: false
+  mustard_close_joint_m: 0.018
+  mustard_min_required_depth_from_top_m: 0.046
+  mustard_extra_micro_descend_after_cartesian_m: 0.022
+  mustard_extra_micro_descend_max_m: 0.028
+  mustard_min_bridge_clearance_after_microdescend_m: 0.0005
+  mustard_palm_bridge_clearance_above_top_m: 0.0025
+  mustard_post_descend_palm_bridge_tolerance_m: 0.0010
+  mustard_post_descend_palm_bridge_min_at_grasp_m: -0.004
+  mustard_joint7_correction_max_delta_rad: 0.10
+  mustard_pregrasp_joint7_search_step_rad: 0.08
+  gripper_axis_search_step_rad: 0.08
+  mustard_grasp_tcp_z_tolerance_m: 0.004
+  mustard_post_descend_depth_tolerance_m: 0.002
+  mustard_direct_pregrasp_velocity_scaling: 0.22
+  mustard_auto_extra_micro_descend_on_shortfall: true
+  mustard_lift_fallback_enabled: true
+  mustard_lift_avoid_collisions: false
+  mustard_lift_cartesian_fraction_threshold: 0.20
+  mustard_lift_cartesian_retry_fraction_threshold: 0.15
+  mustard_transport_cartesian_fraction_threshold: 0.25
+  place_slot_approach_ompl_fallback_enabled: true
+  mustard_transport_avoid_collisions: false
+  # Sugar box
+  sugar_box_final_descend_avoid_collisions: false
+  sugar_box_geometric_fallback_descend_fraction_threshold: 0.80
+  # Chips can
+  chips_can_use_legacy_successful_pick_policy: true
+  chips_can_use_actual_tf_descend_delta: true
+  chips_can_place_release_z_extra_m: 0.0
+  chips_can_release_fallback_max_z_m: 0.280
+  place_slot_release_tcp_z_min_m: 0.160
+  minimum_reachable_release_tcp_z_m: 0.160
+  place_slot_release_ompl_fallback_enabled: true
+  place_slot_release_tcp_z_by_label_json: '{"cracker_box": 0.180, "chips_can": 0.195, "sugar_box": 0.200}'

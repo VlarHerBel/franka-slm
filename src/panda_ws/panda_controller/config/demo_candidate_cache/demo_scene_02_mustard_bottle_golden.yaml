@@ -1,0 +1,72 @@
+scene_id: demo_scene_02
+layout_version: v3_clear_table_transport
+target_label: mustard_bottle
+status: validated_pick_place
+
+object_pose:
+  semantic_center_xy: [0.664, 0.108]
+  top_z: 0.4370
+  yaw_rad: -3.0732
+
+candidate:
+  candidate_idx: 0
+  yaw_deg: -176.0
+  commanded_tcp_yaw_rad: -3.0732
+  pregrasp_tcp: [0.664, 0.108, 0.491]
+  grasp_tcp: [0.664, 0.108, 0.391]
+  lift_tcp: [0.664, 0.108, 0.632]
+  depth_from_top_m: 0.0460
+  ik_seed: pick_workspace_ready
+  prevalidation_source: geometric_fallback
+  cartesian_descend_fraction: 1.0
+  grasp_strategy: tall_object_topdown
+  joint7_rad: 1.1709
+
+grasp:
+  strategy: tall_object_topdown
+  open_joint: 0.0399
+  close_joint: 0.0180
+  expected_width_m: 0.0440
+
+transport:
+  selected_transport_entry: direct_to_carry_front_high
+  route:
+    - carry_mid_high
+    - turn_back_extended_aligned
+    - box_front_high
+    - box_high
+  first_hub: carry_mid_high
+  backend: direct_action
+
+place:
+  slot_index: 3
+  slot_name: slot_4
+  deposit_xy: [-0.540, -0.100]
+  release_tcp_z: 0.3284
+  release_tcp_z_candidates:
+    - 0.3084
+    - 0.3284
+  release_source: golden_place
+  approach_tcp_z: 0.650
+  retreat_tcp_z: 0.650
+
+validation:
+  result: validated_pick_place
+  golden_run_date: "2026-07-01"
+  prevalidation_source: geometric_fallback
+  validated_in_scenes:
+    - deposit_02_cracker_chips
+    - deposit_03_mustard_only
+    - demo_scene_02
+  mustard_lift_cartesian_fraction_threshold: 0.20
+  place_slot_approach_ompl_fallback: true
+  grasp_contact_strict: PASS
+  attach_result: OK
+  post_lift_verify: OK
+  transport_entry_verify: OK
+  place_release_selected_z: 0.3284
+  pick_place_pipeline_completed: true
+  obstacles_disturbed: false
+  notes: >-
+    Pick+transport validados 2026-07-01 deposit_02 (center 0.664,0.108 yaw -3.073).
+    Place: release golden 0.3284; approach slot_4 via OMPL si cartesiano < 0.95.

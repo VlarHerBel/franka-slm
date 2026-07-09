@@ -1,0 +1,69 @@
+scene_id: demo_scene_02
+layout_version: v3_clear_table_transport
+target_label: sugar_box
+status: validated_pick_place
+
+object_pose:
+  semantic_center_xy: [0.630, -0.175]
+  top_z: 0.4350
+  yaw_rad: -3.0159
+
+candidate:
+  candidate_idx: 0
+  yaw_deg: 97.2
+  commanded_tcp_yaw_rad: 1.6965
+  pregrasp_tcp: [0.630, -0.175, 0.472]
+  grasp_tcp: [0.630, -0.175, 0.407]
+  lift_tcp: [0.630, -0.175, 0.557]
+  depth_from_top_m: 0.0280
+  ik_seed: pick_workspace_ready
+  prevalidation_source: geometric_fallback
+  cartesian_descend_fraction: 1.0
+
+grasp:
+  strategy: top_down_short_axis
+  open_joint: 0.0399
+  close_joint: 0.0270
+  expected_width_m: 0.0380
+
+transport:
+  selected_transport_entry: vertical_raise_then_rear_retreat
+  route:
+    - carry_mid_high
+    - turn_back_extended_aligned
+    - box_front_high
+    - box_high
+  first_hub: carry_mid_high
+  backend: direct_action
+
+place:
+  slot_index: 2
+  slot_name: slot_3
+  deposit_xy: [-0.370, -0.100]
+  release_tcp_z: 0.2000
+  release_tcp_z_candidates:
+    - 0.200
+    - 0.220
+    - 0.230
+  release_source: golden_place
+  approach_tcp_z: 0.650
+  retreat_tcp_z: 0.650
+
+validation:
+  result: validated_pick_place
+  golden_run_date: "2026-07-01"
+  prevalidation_source: geometric_fallback
+  validated_in_scenes:
+    - deposit_02_cracker_chips
+    - demo_scene_02
+  sugar_box_final_descend_avoid_collisions: false
+  grasp_contact_strict: PASS
+  attach_result: OK
+  post_lift_verify: OK
+  transport_entry_verify: OK
+  place_result: OK
+  pick_place_mode_completed: true
+  obstacles_disturbed: false
+  notes: >-
+    Validado en sim 2026-07-01 (deposit_02_cracker_chips, clear_table paso 3/4).
+    Pick pregrasp 0.472 -> grasp 0.407 -> lift 0.557; transport+place release 0.200 OK.

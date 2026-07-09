@@ -1,0 +1,5 @@
+# JSON de ground-truth (build_gt_payload o al menos {"objects": [...]}).
+string data
+---
+bool success
+string message

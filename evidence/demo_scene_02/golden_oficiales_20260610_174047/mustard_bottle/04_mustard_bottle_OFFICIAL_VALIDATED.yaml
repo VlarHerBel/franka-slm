@@ -1,0 +1,76 @@
+scene_id: demo_scene_02
+layout_version: v3_clear_table_transport
+target_label: mustard_bottle
+status: validated_pick_place
+
+object_pose:
+  semantic_center_xy: [0.6623, 0.0843]
+  top_z: 0.4609
+  yaw_rad: 1.6392
+
+candidate:
+  candidate_idx: 0
+  yaw_deg: 0.69
+  commanded_tcp_yaw_rad: 0.0120
+  pregrasp_tcp: [0.6627, 0.0851, 0.4912]
+  grasp_tcp: [0.6623, 0.0843, 0.4264]
+  lift_tcp: [0.6632, 0.0845, 0.5483]
+  depth_from_top_m: 0.0345
+  ik_seed: pick_workspace_ready
+  prevalidation_source: geometric_fallback
+  cartesian_descend_fraction: 1.0
+  grasp_strategy: tall_object_topdown
+  joint7_rad: 1.1709
+
+grasp:
+  strategy: tall_object_topdown
+  open_joint: 0.0399
+  close_joint: 0.0220
+  expected_width_m: 0.0440
+
+transport:
+  selected_transport_entry: direct_to_carry_front_high
+  route:
+    - carry_mid_high
+    - turn_back_extended_aligned
+    - box_front_high
+    - box_high
+  first_hub: carry_mid_high
+  backend: direct_action
+
+place:
+  slot_index: 3
+  slot_name: slot_4
+  deposit_xy: [-0.540, -0.100]
+  release_tcp_z: 0.3284
+  release_tcp_z_candidates:
+    - 0.3084
+    - 0.3284
+  release_source: food_safe_dynamic_with_fallback
+  approach_tcp_z: 0.650
+  retreat_tcp_z: 0.650
+
+validation:
+  result: validated_pick_place
+  golden_run_date: "2026-06-10"
+  prevalidation_source: geometric_fallback
+  descend_route: cartesian_with_extra_micro_descend
+  palm_bridge_verify: mustard_deep_grasp_depth_ok_exempt
+  post_descend_depth_verify: OK
+  grasp_contact_strict: PASS
+  attach_result: OK
+  attach_mode: planning_scene_only
+  post_lift_verify: OK
+  transport_entry_verify: OK
+  place_release_first_attempt_z: 0.3084
+  place_release_first_attempt_result: FAIL_STATUS_ABORTED
+  place_release_selected_z: 0.3284
+  place_release_result: OK
+  place_open_detach: OK
+  place_retreat: OK
+  gazebo_post_place_verify: FAIL_OBJECT_Z_LOW
+  pick_place_pipeline_completed: true
+  obstacles_disturbed: false
+  notes: >-
+    Pick-lift-transport-place completo en sim. Release 0.308 aborta en ejecucion;
+    fallback 0.328 OK. Gazebo post-place puede fallar; afinar release_z o friccion.

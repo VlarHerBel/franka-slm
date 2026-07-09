@@ -1,0 +1,25 @@
+scene_id: deposit_2plus2
+description: "2 objetos en depósito (slots 0-1) + cracker y mustard en mesa"
+
+pick_order:
+  - cracker_box
+  - mustard_bottle
+
+objects:
+  cracker_box:
+    role: target_first
+    pose: {x: 0.500, y: -0.080, yaw: 0.0}
+    preferred_slot: 2
+  mustard_bottle:
+    role: obstacle_then_target
+    pose: {x: 0.620, y: 0.100, yaw: 1.2}
+    preferred_slot: 3
+
+initial_deposits:
+  - label: chips_can
+    slot_index: 0
+  - label: sugar_box
+    slot_index: 1
+
+place_policy:
+  slot_mode: ordered_near_to_far

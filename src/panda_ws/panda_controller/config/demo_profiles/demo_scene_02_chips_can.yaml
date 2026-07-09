@@ -1,0 +1,26 @@
+profile_id: demo_scene_02_chips_can
+scene_id: demo_scene_02
+target_label: chips_can
+layout_version: v3_clear_table_transport
+golden_candidate_path: demo_candidate_cache/demo_scene_02_chips_can_golden.yaml
+
+parameters:
+  execution_mode: pick_place
+  execution_cycle_mode: snapshot_execute_home
+  plan_before_prelude: true
+  plan_before_prelude_skip_workspace_prelude: false
+  enable_safe_pregrasp_stage: false
+  verify_gripper_gap_axis_after_pregrasp: true
+  gripper_axis_correction_backend: joint7_direct
+  enable_gripper_axis_in_place_correction: true
+  demo_authoritative_scene: true
+  clear_table_manual_step: true
+  scene_id: demo_scene_02
+  place_slot_index: 1
+  demo_persist_completed_objects: true
+  demo_completed_state_file: /tmp/tfg_demo_completed_objects.json
+  execute_once: true
+  return_home_after_place: true
+  return_home_after_execution: true
+  chips_can_use_legacy_successful_pick_policy: true
+  chips_can_use_actual_tf_descend_delta: true

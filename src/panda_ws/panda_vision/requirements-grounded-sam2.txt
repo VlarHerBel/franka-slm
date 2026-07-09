@@ -1,0 +1,7 @@
+# Optional: install alongside your Grounded SAM 2 / Grounding DINO setup.
+# Example (versions depend on your CUDA stack):
+# torch
+# torchvision
+# Then clone and install the official Grounded-SAM-2 (or your fork) per its README.
+# Wire the pipeline by passing grounded_segment_fn into create_vision_backend or
+# subclass GroundedSAM2Backend.

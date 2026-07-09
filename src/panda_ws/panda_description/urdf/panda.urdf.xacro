@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<robot name="panda" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="base_x" default="0.0"/>
+  <xacro:arg name="base_y" default="0.0"/>
+  <xacro:arg name="base_z" default="0.0"/>
+  <xacro:arg name="base_roll" default="0.0"/>
+  <xacro:arg name="base_pitch" default="0.0"/>
+  <xacro:arg name="base_yaw" default="0.0"/>
+
+  <!-- <xacro:include filename="$(find panda_description)/urdf/materials.xacro" /> -->
+  <xacro:include filename="$(find panda_description)/urdf/arm.xacro" />
+  <xacro:include filename="$(find panda_description)/urdf/sensors.xacro" />
+  <xacro:include filename="$(find panda_description)/urdf/gazebo.xacro" />
+  <xacro:include filename="$(find panda_description)/urdf/ros2control.xacro" />
+    
+</robot>

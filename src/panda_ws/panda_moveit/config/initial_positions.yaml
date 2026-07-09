@@ -1,0 +1,12 @@
+# Default initial positions for panda
+
+initial_positions:
+  panda_joint1: -0.011715794351100829
+  panda_joint2: -0.7718978353758489
+  panda_joint3: -0.05815098072345806
+  panda_joint4: -2.264417692171618
+  panda_joint5: -0.03860755520570227
+  panda_joint6: 1.5298565212648159
+  panda_joint7: 0.7333372530280367
+  panda_finger_joint1: 0
+  panda_finger_joint2: 0

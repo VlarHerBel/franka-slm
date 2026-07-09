@@ -1,0 +1,256 @@
+golden_candidate_schema_version: 2
+type: full_execution_candidate
+scene_id: demo_scene_02
+layout_version: v3_clear_table_transport
+target_label: cracker_box
+status: validated_full_execution
+scene_signature:
+  scene_id: demo_scene_02
+  target_label: cracker_box
+  target_center_xyz:
+  - 0.455
+  - 0.115
+  - 0.47
+  target_yaw_rad: 2.9155
+  target_top_z: 0.47
+  place_slot_index: 0
+  place_slot_xyz:
+  - -0.37
+  - 0.08
+  - 0.329238
+  obstacles: []
+  completed_labels: []
+  compatibility_tolerances:
+    center_xy_tol_m: 0.01
+    yaw_tol_deg: 3.0
+    top_z_tol_m: 0.01
+    obstacle_pose_tol_m: 0.02
+preconditions:
+  robot_start: HOME
+  gripper_open: true
+  no_object_attached: true
+  target_present: true
+  target_not_completed: true
+  target_collision_before_approach: true
+  runtime_scene_gt_available: true
+  place_slot_free: true
+geometric_candidate:
+  candidate_idx: 0
+  yaw_deg: 77.05
+  commanded_tcp_yaw_rad: 1.344703673205025
+  pregrasp_tcp:
+  - 0.455
+  - 0.115
+  - 0.562
+  grasp_tcp:
+  - 0.455
+  - 0.115
+  - 0.437
+  lift_tcp:
+  - 0.455
+  - 0.115
+  - 0.587
+  depth_from_top_m: 0.033
+  ik_seed: pick_workspace_ready
+  prevalidation_source: demo_collision_off_final_descend
+  cartesian_descend_fraction: 1.0
+kinematic_solution:
+  ik_seed: pick_workspace_ready
+execution_route:
+  phase_count: 16
+transport_route:
+  selected_transport_entry: vertical_raise_then_rear_retreat
+  route: &id001
+  - carry_mid_high
+  - turn_back_extended_aligned
+  - box_front_high
+  - box_high
+  backend: direct_action
+place_policy:
+  slot_index: 0
+  slot_name: slot_1
+  deposit_xy:
+  - -0.37
+  - 0.08
+  release_tcp_z: 0.329238
+  approach_tcp_z: 0.65
+  retreat_tcp_z: 0.65
+  release_source: food_safe_dynamic
+phases:
+- name: home_to_pick_workspace_ready
+  type: joint_trajectory
+  joint_names:
+  - panda_joint1
+  - panda_joint2
+  - panda_joint3
+  - panda_joint4
+  - panda_joint5
+  - panda_joint6
+  - panda_joint7
+  goal_waypoint: pick_workspace_ready
+  points:
+  - positions:
+    - -0.00282136804817618
+    - 0.16468079755461604
+    - 0.048581227202378605
+    - -1.2623226256078592
+    - -0.012845199905666927
+    - 1.4497137109706164
+    - 0.7735593612469361
+    time_from_start_s: 5.0
+  duration_s: 5.0
+- name: approach_to_pregrasp
+  type: joint_trajectory
+  tcp_goal:
+  - 0.455
+  - 0.115
+  - 0.562
+  goal_js: null
+  duration_s: 4.0
+- name: gripper_axis_alignment
+  type: joint_adjustment
+  joint7_target: null
+  expected_gap_axis_error_deg: 2.0
+- name: open_gripper_at_pregrasp
+  type: gripper_command
+  open_joint: 0.0399
+  command: open
+  duration_s: 1.0
+- name: cartesian_descend_to_grasp
+  type: cartesian_or_joint_trajectory
+  start_tcp:
+  - 0.455
+  - 0.115
+  - 0.562
+  goal_tcp:
+  - 0.455
+  - 0.115
+  - 0.437
+  depth_from_top_m: 0.033
+  fraction: 1.0
+  duration_s: 3.0
+- name: close_gripper
+  type: gripper_command
+  open_joint: 0.0399
+  close_joint: 0.027
+  expected_width: 0.06
+- name: attach_and_verify
+  type: attach
+  expected_contact_policy: strict
+- name: cartesian_lift
+  type: trajectory
+  start_tcp:
+  - 0.455
+  - 0.115
+  - 0.437
+  goal_tcp:
+  - 0.455
+  - 0.115
+  - 0.587
+  duration_s: 2.5
+- name: post_lift_local_escape
+  type: trajectory
+  selected_mode: vertical_raise_then_rear_retreat
+  duration_s: 4.0
+- name: transport_entry_to_safe_hub
+  type: direct_action_or_joint_trajectory
+  target_waypoint: carry_mid_high
+  duration_s: 6.0
+- name: deterministic_transport
+  type: waypoint_sequence
+  backend: direct_action
+  sequence: *id001
+  per_segment_times_s:
+  - 5.0
+  - 10.0
+  - 20.0
+  - 27.0
+  joint_waypoints:
+  - waypoint: carry_mid_high
+    joints:
+    - 0.1538690790348689
+    - -0.9992379001768518
+    - -0.041740937942416775
+    - -2.0115537391504663
+    - -0.04192646329146716
+    - 1.0133649130426015
+    - -0.675491013301395
+  - waypoint: turn_back_extended_aligned
+    joints:
+    - -2.85
+    - -0.549238
+    - -0.141741
+    - -1.811554
+    - -0.041926
+    - 1.213365
+    - 2.522
+  - waypoint: box_front_high
+    joints:
+    - -2.85
+    - -0.349238
+    - -0.141741
+    - -1.611554
+    - -0.041926
+    - 1.213365
+    - 2.522
+  - waypoint: box_high
+    joints:
+    - -2.85
+    - -0.299238
+    - -0.221741
+    - -1.611554
+    - -0.041926
+    - 1.213365
+    - 2.44
+- name: place_approach
+  type: cartesian_or_joint_trajectory
+  tcp_goal:
+  - -0.37
+  - 0.08
+  - 0.65
+  duration_s: 4.0
+- name: place_release
+  type: cartesian_or_joint_trajectory
+  tcp_goal:
+  - -0.37
+  - 0.08
+  - 0.329238
+  release_tcp_z: 0.329238
+  duration_s: 3.0
+- name: open_detach
+  type: gripper_and_detach
+- name: place_retreat
+  type: cartesian_or_joint_trajectory
+  tcp_goal:
+  - -0.37
+  - 0.08
+  - 0.65
+  duration_s: 3.0
+- name: return_home
+  type: joint_trajectory
+  goal_waypoint: home
+  points:
+  - positions:
+    - -0.011715794000000074
+    - -0.7718978349995642
+    - -0.058150980000052914
+    - -2.2644176920016643
+    - -0.038607555000000675
+    - 1.5298565209997919
+    - 0.7333372529999951
+    time_from_start_s: 4.0
+  duration_s: 4.0
+validation:
+  result: validated_pick_place
+  grasp_contact_strict: PASS
+  attach_result: OK
+  post_lift_verify: OK
+  transport_entry_verify: OK
+  attached_direct_action_route_validate: OK
+  place_result: OK
+  detach_result: OK
+  return_home_after_place: OK
+  obstacles_disturbed: false
+record_metadata:
+  source: v1_golden_migration
+  v1_status: validated_pick_place

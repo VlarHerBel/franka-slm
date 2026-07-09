@@ -1,0 +1,75 @@
+scene_id: chips_mustard_01
+description: "Validación SLM: chips_can + mustard_bottle, posición y orientación aleatorias"
+
+spawn_mode: random
+# Semilla de validación chips_mustard (reproducible si scene_random_seed:=0 en launch).
+random_seed: 401
+
+pick_order:
+  - chips_can
+  - mustard_bottle
+
+objects:
+  chips_can:
+    role: target_first
+    preferred_slot: 0
+
+  mustard_bottle:
+    role: target_second
+    preferred_slot: 0
+
+transport_policy:
+  forbidden_waypoints_when_obstacles_remaining:
+    - carry_front_high
+  local_exit_candidates:
+    - rear_retreat_x_negative
+    - rear_retreat_x_negative_slight_raise
+    - vertical_raise_then_rear_retreat
+    - rear_retreat_x_negative_far
+    - rear_retreat_x_negative_raise_far
+  reconfiguration_waypoints:
+    - carry_mid_high
+  transport_route:
+    - carry_mid_high
+    - turn_back_extended_aligned
+    - box_front_high
+    - box_high
+  backend: direct_action
+  validate_attached_swept_volume: true
+  defer_named_hub_to_deterministic_transport: true
+  use_lateral_transport_corridors: false
+
+safety:
+  obstacle_disturbance_xy_threshold_m: 0.010
+  obstacle_disturbance_z_threshold_m: 0.020
+  attached_transport_safety_margin_tolerance_m: 0.006
+  local_exit_required_clearance_m: 0.050
+  local_exit_min_table_clearance_m: 0.200
+  reconfiguration_min_table_clearance_m: 0.200
+  reconfiguration_min_xy_clearance_m: 0.080
+  reconfiguration_required_clearance_m: 0.080
+  global_route_required_clearance_m: 0.100
+
+transport_phases:
+  local_escape:
+    - carry_safe_height
+    - rear_retreat_x_negative
+    - rear_retreat_x_negative_slight_raise
+    - vertical_raise_then_rear_retreat
+    - rear_retreat_x_negative_far
+    - rear_retreat_x_negative_raise_far
+  reconfiguration:
+    requires_zone_ok: true
+    backend: direct_action
+    waypoints:
+      - carry_mid_high
+  global_transport:
+    backend: direct_action
+    waypoints:
+      - turn_back_extended_aligned
+      - box_front_high
+      - box_high
+
+place_policy:
+  slot_mode: ordered_near_to_far
+  use_food_safe_dynamic_release_z: true

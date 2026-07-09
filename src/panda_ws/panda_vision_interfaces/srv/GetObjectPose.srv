@@ -1,0 +1,7 @@
+# Segmented object point cloud in camera (or sensor) frame.
+sensor_msgs/PointCloud2 object_cloud
+string frame_id
+---
+geometry_msgs/Pose pose
+float32 confidence
+bool success

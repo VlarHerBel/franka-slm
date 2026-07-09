@@ -1,0 +1,56 @@
+profile_id: demo_scene_02_mustard_bottle
+scene_id: demo_scene_02
+target_label: mustard_bottle
+layout_version: v3_clear_table_transport
+golden_candidate_path: demo_candidate_cache/demo_scene_02_mustard_bottle_golden.yaml
+
+parameters:
+  execution_mode: pick_place
+  execution_cycle_mode: snapshot_execute_home
+  plan_before_prelude: true
+  plan_before_prelude_skip_workspace_prelude: false
+  enable_safe_pregrasp_stage: false
+  verify_gripper_gap_axis_after_pregrasp: true
+  gripper_axis_correction_backend: joint7_direct
+  enable_gripper_axis_in_place_correction: true
+  demo_authoritative_scene: true
+  clear_table_manual_step: true
+  scene_id: demo_scene_02
+  place_slot_index: 3
+  demo_persist_completed_objects: true
+  demo_completed_state_file: /tmp/tfg_demo_completed_objects.json
+  execute_once: true
+  return_home_after_place: true
+  return_home_after_execution: true
+  use_golden_execution_candidate: false
+  require_golden_execution_candidate: false
+  paired_grid_search_mode: prioritized_or_cached
+  paired_grid_max_candidates_runtime: 36
+  paired_grid_max_runtime_sec: 120.0
+  paired_grid_accept_first_valid: true
+  paired_joint7_offline_fast_mode: true
+  mustard_pregrasp_ik_joint_goal: false
+  mustard_demo_scene_depth_search_enabled: false
+  mustard_close_joint_m: 0.018
+  mustard_min_required_depth_from_top_m: 0.046
+  mustard_extra_micro_descend_after_cartesian_m: 0.022
+  mustard_extra_micro_descend_max_m: 0.028
+  mustard_min_bridge_clearance_after_microdescend_m: 0.0005
+  mustard_palm_bridge_clearance_above_top_m: 0.0025
+  mustard_post_descend_palm_bridge_tolerance_m: 0.0010
+  mustard_post_descend_palm_bridge_min_at_grasp_m: -0.004
+  mustard_joint7_correction_max_delta_rad: 0.10
+  mustard_pregrasp_joint7_search_step_rad: 0.08
+  gripper_axis_search_step_rad: 0.08
+  mustard_grasp_tcp_z_tolerance_m: 0.004
+  mustard_post_descend_depth_tolerance_m: 0.002
+  mustard_direct_pregrasp_velocity_scaling: 0.22
+  post_grasp_pause_sec: 1.0
+  mustard_auto_extra_micro_descend_on_shortfall: true
+  mustard_lift_fallback_enabled: true
+  mustard_lift_avoid_collisions: false
+  mustard_lift_cartesian_fraction_threshold: 0.20
+  mustard_lift_cartesian_retry_fraction_threshold: 0.15
+  mustard_transport_cartesian_fraction_threshold: 0.25
+  mustard_transport_avoid_collisions: false
+  place_slot_approach_ompl_fallback_enabled: true

@@ -1,0 +1,78 @@
+scene_id: demo_scene_02
+layout_version: v3_clear_table_transport
+target_label: chips_can
+status: validated_pick_place
+
+object_pose:
+  semantic_center_xy: [0.520, -0.095]
+  top_z: 0.5100
+  yaw_rad: 1.3953
+
+candidate:
+  candidate_idx: 0
+  yaw_deg: 180.0
+  commanded_tcp_yaw_rad: 3.141592653589793
+  pregrasp_tcp: [0.520, -0.095, 0.5450]
+  grasp_tcp: [0.520, -0.095, 0.4750]
+  lift_tcp: [0.520, -0.095, 0.6250]
+  depth_from_top_m: 0.0350
+  ik_seed: pick_workspace_ready
+  prevalidation_source: chips_can_legacy_pending_actual_tf_descend
+  cartesian_descend_fraction: 1.0
+
+legacy:
+  policy: legacy_successful_pick
+  contract: OK_CHIPS_LEGACY_PENDING_ACTUAL_TF_DESCEND
+  pregrasp_height_above_top_m: 0.0350
+  depth_from_top_m: 0.0350
+  object_high_tcp_z: 0.6600
+  legacy_low_pregrasp_tcp_z: 0.5450
+  actual_legacy_low_pregrasp_tcp_z: 0.5585
+  high_to_low_result: OK_BORDERLINE_HIGH_TO_LOW
+  object_high_to_low_fraction: 1.0
+  variant_name: top_down_yaw_pi
+  borderline_clearance_above_top_m: 0.0485
+
+grasp:
+  strategy: cylinder_topdown
+  open_joint: 0.0399
+  close_joint: 0.0270
+  expected_width_m: 0.0600
+
+transport:
+  selected_transport_entry: vertical_raise_then_rear_retreat
+  route:
+    - carry_mid_high
+    - turn_back_extended_aligned
+    - box_front_high
+    - box_high
+  forbidden_waypoints:
+    - carry_front_high
+  first_hub: carry_mid_high
+  backend: direct_action
+
+place:
+  slot_index: 1
+  slot_name: slot_2
+  release_tcp_z: 0.195
+  release_tcp_z_candidates: [0.195, 0.210, 0.225]
+  release_source: golden_place
+  approach_tcp_z: 0.400
+  retreat_tcp_z: 0.450
+
+validation:
+  result: validated_pick_place
+  golden_run_date: "2026-06-07"
+  pick_order_after: cracker_box
+  chips_can_legacy_high_to_low_execute: OK_BORDERLINE_HIGH_TO_LOW
+  chips_can_pre_descend_pose_gate: OK
+  chips_can_micro_descend_route: OK
+  chips_can_post_descend_depth_verify: OK
+  cylinder_contact_policy_contact_ok: true
+  grasp_contact_strict: PASS
+  attach_result: OK
+  post_lift_verify: OK
+  post_pick_transport_entry_verify: OK
+  place_result: OK
+  pick_place_mode_completed: true
+  obstacles_disturbed: false

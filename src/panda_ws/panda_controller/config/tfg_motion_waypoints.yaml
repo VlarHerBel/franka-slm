@@ -1,0 +1,142 @@
+# Placeholder: medir con record_joint_waypoint antes de usar en simulación.
+# Pose de trabajo bajo la ROI de cámara; el snapshot se toma en HOME antes de este movimiento.
+pick_workspace_ready:
+  joints:
+    panda_joint1: -0.00282136804817618
+    panda_joint2: 0.16468079755461604
+    panda_joint3: 0.048581227202378605
+    panda_joint4: -1.2623226256078592
+    panda_joint5: -0.012845199905666927
+    panda_joint6: 1.4497137109706164
+    panda_joint7: 0.7735593612469361
+  description: PLACEHOLDER — copia de home; sustituir por pose medida cerca del área visible de cámara.
+home:
+  joints:
+    panda_joint1: -0.011715794000000074
+    panda_joint2: -0.7718978349995642
+    panda_joint3: -0.058150980000052914
+    panda_joint4: -2.2644176920016643
+    panda_joint5: -0.038607555000000675
+    panda_joint6: 1.5298565209997919
+    panda_joint7: 0.7333372529999951
+  description: Recorded from /joint_states
+transport_ready_unwind:
+  description: Postura alta y centrada, fuera de objetos, antes de girar hacia depósito.
+  joints:
+    panda_joint1: 0.120000
+    panda_joint2: -0.880000
+    panda_joint3: -0.050000
+    panda_joint4: -2.050000
+    panda_joint5: -0.040000
+    panda_joint6: 1.050000
+    panda_joint7: -0.700000
+transport_home_high:
+  description: Punto alto encima de zona home/transporte, sin pasar sobre objetos.
+  joints:
+    panda_joint1: 0.080000
+    panda_joint2: -0.820000
+    panda_joint3: -0.055000
+    panda_joint4: -2.100000
+    panda_joint5: -0.040000
+    panda_joint6: 1.000000
+    panda_joint7: -0.680000
+elbow_unwind_high:
+  description: Postura para desretorcer codo/muñeca sin acercarse a objetos.
+  joints:
+    panda_joint1: 0.140000
+    panda_joint2: -0.920000
+    panda_joint3: -0.045000
+    panda_joint4: -1.950000
+    panda_joint5: -0.042000
+    panda_joint6: 0.950000
+    panda_joint7: -0.650000
+carry_front_high:
+  joints:
+    panda_joint1: 0.45861826989229754
+    panda_joint2: -0.07961211321970624
+    panda_joint3: -0.4273123501352411
+    panda_joint4: -1.4003374211181137
+    panda_joint5: -0.034052992334984704
+    panda_joint6: 1.3276494915667252
+    panda_joint7: -0.7607475377934758
+  description: Recorded from /joint_states
+carry_mid_high:
+  joints:
+    panda_joint1: 0.1538690790348689
+    panda_joint2: -0.9992379001768518
+    panda_joint3: -0.041740937942416775
+    panda_joint4: -2.0115537391504663
+    panda_joint5: -0.04192646329146716
+    panda_joint6: 1.0133649130426015
+    panda_joint7: -0.675491013301395
+  description: Recorded from /joint_states
+carry_extend_high:
+  description: 'Opcional/fallback: extensión frontal alta (no usado en ruta determinista activa).'
+  joints:
+    panda_joint1: 0.153869
+    panda_joint2: -0.549238
+    panda_joint3: -0.041741
+    panda_joint4: -1.811554
+    panda_joint5: -0.041926
+    panda_joint6: 1.013365
+    panda_joint7: -0.675491
+turn_back_extended_aligned:
+  description: Giro hacia la caja con radio aumentado; alto, alineado y con yaw canónico.
+  joints:
+    panda_joint1: -2.850000
+    panda_joint2: -0.549238
+    panda_joint3: -0.141741
+    panda_joint4: -1.811554
+    panda_joint5: -0.041926
+    panda_joint6: 1.213365
+    panda_joint7: 2.522000
+box_front_high:
+  description: Waypoint de entrada antes del slot; pose alta en el borde delantero/interior de la caja de depósito (antes de box_high y del descenso cartesiano local al slot).
+  joints:
+    panda_joint1: -2.850000
+    panda_joint2: -0.349238
+    panda_joint3: -0.141741
+    panda_joint4: -1.611554
+    panda_joint5: -0.041926
+    panda_joint6: 1.213365
+    panda_joint7: 2.522000
+carry_high:
+  description: 'LEGADO: alias seguro de carry_extend_high.'
+  joints:
+    panda_joint1: 0.153869
+    panda_joint2: -0.549238
+    panda_joint3: -0.041741
+    panda_joint4: -1.811554
+    panda_joint5: -0.041926
+    panda_joint6: 1.013365
+    panda_joint7: -0.675491
+box_high:
+  description: Waypoint final alto sobre la caja de depósito; desde aquí se ejecutan approach/release/retreat cartesianos locales al slot (timing de transporte vía distancia articular en código, no en YAML).
+  joints:
+    panda_joint1: -2.850000
+    panda_joint2: -0.299238
+    panda_joint3: -0.221741
+    panda_joint4: -1.611554
+    panda_joint5: -0.041926
+    panda_joint6: 1.213365
+    panda_joint7: 2.440000
+post_place_safe:
+  description: Tras place_retreat; alto en borde delantero/interior de caja antes de volver a home.
+  joints:
+    panda_joint1: -2.850000
+    panda_joint2: -0.349238
+    panda_joint3: -0.141741
+    panda_joint4: -1.611554
+    panda_joint5: -0.041926
+    panda_joint6: 1.213365
+    panda_joint7: 2.522000
+home_after_place:
+  description: Home final tras place.
+  joints:
+    panda_joint1: -0.011715794000000074
+    panda_joint2: -0.7718978349995642
+    panda_joint3: -0.058150980000052914
+    panda_joint4: -2.2644176920016643
+    panda_joint5: -0.038607555000000675
+    panda_joint6: 1.5298565209997919
+    panda_joint7: 0.7333372529999951
